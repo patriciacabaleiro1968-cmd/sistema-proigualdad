@@ -580,7 +580,7 @@
             mostrarLoading(true);
             
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DATOS_JERARQUIA?key=${API_KEY}`;
+               const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATOS_JERARQUIA`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
