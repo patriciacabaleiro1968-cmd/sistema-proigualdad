@@ -240,11 +240,12 @@
                         <div class="col-md-3">
                             <label for="yearFilter" class="form-label">Año de Gestión</label>
                             <select class="form-select" id="yearFilter">
-                                <option value="2026">2026 (Actual)</option>
-                                <option value="2025">2025 (Histórico)</option>
-                                <option value="2027">2027 (Proyección)</option>
-                                <option value="todos">Todos los años</option>
-                            </select>
+    <option value="2025">2025 (Actual)</option>
+    <option value="2024">2024 (Histórico)</option>
+    <option value="2026">2026 (Próxima)</option>
+    <option value="2027">2027 (Estratégica)</option>
+    <option value="todos">Todos los años</option>
+</select>
                         </div>
                         <div class="col-md-3">
                             <label for="componenteFilter" class="form-label">Componente</label>
@@ -544,7 +545,7 @@
             evolutionChart = new Chart(evolutionCtx, {
                 type: 'line',
                 data: {
-                    labels: ['2025', '2026', '2027 (Proy)'],
+                    labels: ['2024', '2025 (Actual)', '2026 (Próx)', '2027 (Estrat)'],
                     datasets: [{
                         label: 'Metodologías Institucionalizadas',
                         data: [3, 2, 5],
