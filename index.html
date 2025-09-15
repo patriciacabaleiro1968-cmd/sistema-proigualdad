@@ -1,826 +1,490 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Monitoreo - ProIgualdad</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #4a3c8d;
-            --secondary: #e5438a;
-            --accent: #41c4b3;
-            --light: #f8f9fa;
-            --dark: #343a40;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7f9;
-            color: #333;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--primary), #6a52b3);
-        }
-        
-        .sidebar {
-            background-color: white;
-            border-right: 1px solid #dee2e6;
-            height: calc(100vh - 56px);
-            position: sticky;
-            top: 56px;
-            padding-top: 20px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05);
-        }
-        
-        .sidebar .nav-link {
-            color: var(--dark);
-            border-left: 4px solid transparent;
-            padding: 12px 20px;
-            margin: 5px 0;
-            transition: all 0.3s;
-        }
-        
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background-color: rgba(74, 60, 141, 0.1);
-            border-left-color: var(--primary);
-            color: var(--primary);
-        }
-        
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            color: var(--primary);
-        }
-        
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            border: none;
-            transition: transform 0.3s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .progress {
-            height: 10px;
-            border-radius: 5px;
-        }
-        
-        .kpi-card {
-            border-left: 4px solid var(--primary);
-        }
-        
-        .indicator-card {
-            border-top: 3px solid var(--secondary);
-        }
-        
-        .activity-card {
-            border-top: 3px solid var(--accent);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-        }
-        
-        .btn-primary:hover {
-            background-color: #3a2c70;
-            border-color: #3a2c70;
-        }
-        
-        .badge-femenino {
-            background-color: rgba(229, 67, 138, 0.2);
-            color: #c53d74;
-        }
-        
-        .badge-masculino {
-            background-color: rgba(65, 196, 179, 0.2);
-            color: #2a9c8c;
-        }
-        
-        .dashboard-section {
-            display: none;
-        }
-        
-        .dashboard-section.active {
-            display: block;
-        }
-        
-        .filter-section {
-            background-color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-        
-        .data-card {
-            border-left: 4px solid var(--accent);
-        }
-        
-        .last-update {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Monitoreo - ProIgualdad</title>
 
-        .component-badge {
-            background-color: var(--primary);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin-right: 5px;
-        }
-        
-        .year-comparison {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-    </style>
+  <!-- Estilos / Librerías -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- Gráficos / Exportación -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- Parser CSV robusto -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root { --primary:#4a3c8d; --secondary:#e5438a; --accent:#41c4b3; --light:#f8f9fa; --dark:#343a40; }
+    body{ font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f5f7f9; color:#333; }
+    .navbar{ background:linear-gradient(135deg,var(--primary),#6a52b3); }
+    .sidebar{ background:#fff; border-right:1px solid #dee2e6; height:calc(100vh - 56px); position:sticky; top:56px; padding-top:20px; box-shadow:0 0 15px rgba(0,0,0,0.05);}
+    .sidebar .nav-link{ color:var(--dark); border-left:4px solid transparent; padding:12px 20px; margin:5px 0; transition:.3s;}
+    .sidebar .nav-link:hover,.sidebar .nav-link.active{ background:rgba(74,60,141,.1); border-left-color:var(--primary); color:var(--primary);}
+    .sidebar .nav-link i{ margin-right:10px; color:var(--primary);}
+    .card{ border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.05); border:none; transition:transform .3s;}
+    .card:hover{ transform:translateY(-5px);}
+    .progress{ height:10px; border-radius:5px;}
+    .kpi-card{ border-left:4px solid var(--primary);}
+    .indicator-card{ border-top:3px solid var(--secondary);}
+    .activity-card{ border-top:3px solid var(--accent);}
+    .btn-primary{ background:var(--primary); border-color:var(--primary);}
+    .btn-primary:hover{ background:#3a2c70; border-color:#3a2c70;}
+    .badge-femenino{ background:rgba(229,67,138,.2); color:#c53d74;}
+    .badge-masculino{ background:rgba(65,196,179,.2); color:#2a9c8c;}
+    .dashboard-section{ display:none; }
+    .dashboard-section.active{ display:block; }
+    .filter-section{ background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.05);}
+    .loading-overlay{ position:fixed; inset:0; background:rgba(255,255,255,.8); display:flex; justify-content:center; align-items:center; z-index:9999;}
+    .spinner-border{ width:3rem; height:3rem;}
+    .data-card{ border-left:4px solid var(--accent);}
+    .last-update{ font-size:.8rem; color:#6c757d; }
+    .component-badge{ background:var(--primary); color:#fff; padding:3px 8px; border-radius:4px; font-size:.8rem; margin-right:5px;}
+    .year-comparison{ background:linear-gradient(135deg,#667eea 0%, #764ba2 100%); color:#fff; border-radius:10px; padding:15px; margin-bottom:20px;}
+  </style>
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando datos...</span>
-            </div>
-            <p class="mt-3">Cargando datos desde Google Sheets...</p>
-        </div>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando datos…</span></div>
+      <p class="mt-3">Cargando datos desde Google Sheets…</p>
     </div>
+  </div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-venus-double"></i> Sistema de Monitoreo - ProIgualdad
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="text-light me-3" id="currentDate"></span>
-                <button class="btn btn-outline-light btn-sm me-2" onclick="cargarDatos()">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-download"></i> Exportar Reporte
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="descargarPDF()"><i class="fas fa-file-pdf"></i> PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Excel</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-lg-2 col-md-3 p-0 sidebar">
-                <nav class="nav flex-column">
-                    <a class="nav-link active" href="#" data-section="resumen">
-                        <i class="fas fa-chart-pie"></i> Resumen General
-                    </a>
-                    <a class="nav-link" href="#" data-section="indicadores">
-                        <i class="fas fa-chart-line"></i> Indicadores
-                    </a>
-                    <a class="nav-link" href="#" data-section="componentes">
-                        <i class="fas fa-puzzle-piece"></i> Componentes
-                    </a>
-                    <a class="nav-link" href="#" data-section="actividades">
-                        <i class="fas fa-tasks"></i> Actividades
-                    </a>
-                    <a class="nav-link" href="#" data-section="calendario">
-                        <i class="fas fa-calendar-alt"></i> Cronograma
-                    </a>
-                    <a class="nav-link" href="#" data-section="productos">
-                        <i class="fas fa-box-open"></i> Productos
-                    </a>
-                    <a class="nav-link" href="#" data-section="configuracion">
-                        <i class="fas fa-cog"></i> Configuración
-                    </a>
-                </nav>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-lg-10 col-md-9 mt-4">
-                <!-- Filtros -->
-                <div class="filter-section mb-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <label for="yearFilter" class="form-label">Año de Gestión</label>
-                            <select class="form-select" id="yearFilter">
-                                <option value="2025">2025 (Actual)</option>
-                                <option value="2024">2024 (Histórico)</option>
-                                <option value="2026">2026 (Próxima)</option>
-                                <option value="2027">2027 (Estratégica)</option>
-                                <option value="todos">Todos los años</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="componenteFilter" class="form-label">Componente</label>
-                            <select class="form-select" id="componenteFilter">
-                                <option value="">Todos los componentes</option>
-                                <option value="1">Componente 1: Educación</option>
-                                <option value="2">Componente 2: Empresas</option>
-                                <option value="3">Componente 3: Medios</option>
-                                <option value="4">Componente 4: Gestión</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="estadoFilter" class="form-label">Estado</label>
-                            <select class="form-select" id="estadoFilter">
-                                <option value="">Todos los estados</option>
-                                <option value="no-iniciado">No iniciado</option>
-                                <option value="en-progreso">En progreso</option>
-                                <option value="completado">Completado</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-primary w-100" onclick="aplicarFiltros()">Aplicar Filtros</button>
-                        </div>
-                    </div>
-                    <div class="mt-2 last-update" id="lastUpdate">
-                        Última actualización: --
-                    </div>
-                </div>
-
-                <!-- Resumen General -->
-                <div id="resumen" class="dashboard-section active">
-                    <h2 class="mb-4">Resumen del Proyecto ProIgualdad</h2>
-                    
-                    <!-- Comparación entre años -->
-                    <div class="year-comparison">
-                        <h5><i class="fas fa-calendar-alt"></i> Comparación entre Años</h5>
-                        <div class="row">
-                            <div class="col-md-3 text-center">
-                                <h3>2024</h3>
-                                <h4>65%</h4>
-                                <small>Histórico</small>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <h3>2025</h3>
-                                <h4>35%</h4>
-                                <small>Actual</small>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <h3>2026</h3>
-                                <h4>15%</h4>
-                                <small>Próxima</small>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <h3>Total</h3>
-                                <h4>42%</h4>
-                                <small>Global</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">Objetivo General</h5>
-                                    <p class="card-text">El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.</p>
-                                    <div class="progress mb-3">
-                                        <div class="progress-bar bg-success" role="progressbar" id="progresoGeneral" style="width: 35%" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <small id="textoProgreso">Progreso general: 35%</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card kpi-card">
-                                <div class="card-body text-center">
-                                    <h6 class="card-subtitle mb-2 text-muted">Metodologías Institucionalizadas</h6>
-                                    <h2 class="card-title" style="color: #e5438a;" id="metodologiasInstitucionalizadas">2/5</h2>
-                                    <p class="card-text">Meta: 5 metodologías en 3 DDE</p>
-                                </div>
-                            </div>
-                            <div class="card kpi-card mt-3">
-                                <div class="card-body text-center">
-                                    <h6 class="card-subtitle mb-2 text-muted">Productos Comunicacionales</h6>
-                                    <h2 class="card-title" style="color: #41c4b3;" id="productosComunicacionales">10/38</h2>
-                                    <p class="card-text" id="avanceProductos">26% de avance</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">Distribución por Componente (2025)</h5>
-                                    <canvas id="componentChart" height="250"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">Evolución de Indicadores por Año</h5>
-                                    <canvas id="evolutionChart" height="250"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Datos en tiempo real desde Google Sheets -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card data-card">
-                                <div class="card-header">
-                                    <h5 class="card-title">
-                                        <i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - Año 2025
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover" id="tablaDatos">
-                                            <thead>
-                                                <tr>
-                                                    <th>Año</th>
-                                                    <th>Componente</th>
-                                                    <th>Indicador</th>
-                                                    <th>Meta</th>
-                                                    <th>Actual</th>
-                                                    <th>Progreso</th>
-                                                    <th>Estado</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>2025</td>
-                                                    <td><span class="component-badge">C1</span> Educación</td>
-                                                    <td>Metodologías educativas institucionalizadas</td>
-                                                    <td>5</td>
-                                                    <td>2</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 10px;">
-                                                            <div class="progress-bar" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-warning">En progreso</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2025</td>
-                                                    <td><span class="component-badge">C1</span> Educación</td>
-                                                    <td>Instrumentos de capacitación piloteados</td>
-                                                    <td>6</td>
-                                                    <td>3</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 10px;">
-                                                            <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-warning">En progreso</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2024</td>
-                                                    <td><span class="component-badge">C2</span> Empresas</td>
-                                                    <td>Instrumento de sello ampliado</td>
-                                                    <td>1</td>
-                                                    <td>1</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 10px;">
-                                                            <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">100%</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-success">Completado</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2025</td>
-                                                    <td><span class="component-badge">C2</span> Empresas</td>
-                                                    <td>Buenas prácticas compartidas</td>
-                                                    <td>5</td>
-                                                    <td>2</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 10px;">
-                                                            <div class="progress-bar" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-warning">En progreso</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2025</td>
-                                                    <td><span class="component-badge">C3</span> Medios</td>
-                                                    <td>Productos mediáticos y comunicacionales</td>
-                                                    <td>38</td>
-                                                    <td>10</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 10px;">
-                                                            <div class="progress-bar" role="progressbar" style="width: 26%;" aria-valuenow="26" aria-valuemin="0" aria-valuemax="100">26%</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span class="badge bg-warning">En progreso</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Resto de las secciones (indicadores, componentes, etc.) -->
-                <div id="indicadores" class="dashboard-section">
-                    <h2 class="mb-4">Indicadores de Desempeño</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
-                    </div>
-                </div>
-
-                <div id="componentes" class="dashboard-section">
-                    <h2 class="mb-4">Componentes del Proyecto</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
-                    </div>
-                </div>
-
-                <div id="actividades" class="dashboard-section">
-                    <h2 class="mb-4">Actividades</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
-                    </div>
-                </div>
-
-                <div id="calendario" class="dashboard-section">
-                    <h2 class="mb-4">Cronograma</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
-                    </div>
-                </div>
-
-                <div id="productos" class="dashboard-section">
-                    <h2 class="mb-4">Productos</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
-                    </div>
-                </div>
-
-                <div id="configuracion" class="dashboard-section">
-                    <h2 class="mb-4">Configuración</h2>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Esta sección permitirá configurar la conexión con Google Sheets.
-                    </div>
-                </div>
-
-            </div>
+      <a class="navbar-brand" href="#"><i class="fas fa-venus-double"></i> Sistema de Monitoreo - ProIgualdad</a>
+      <div class="d-flex align-items-center">
+        <span class="text-light me-3" id="currentDate"></span>
+        <button id="btnRefresh" class="btn btn-outline-light btn-sm me-2">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-download"></i> Exportar Reporte
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" id="btnPDF"><i class="fas fa-file-pdf"></i> PDF</a></li>
+            <li><a class="dropdown-item" href="#" id="btnExcel"><i class="fas fa-file-excel"></i> Excel</a></li>
+          </ul>
         </div>
+      </div>
     </div>
+  </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Variables globales
-        let componentChart, evolutionChart;
-        let datosGoogleSheets = {};
-        const SHEET_ID = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-lg-2 col-md-3 p-0 sidebar">
+        <nav class="nav flex-column">
+          <a class="nav-link active" href="#" data-section="resumen"><i class="fas fa-chart-pie"></i> Resumen General</a>
+          <a class="nav-link" href="#" data-section="indicadores"><i class="fas fa-chart-line"></i> Indicadores</a>
+          <a class="nav-link" href="#" data-section="componentes"><i class="fas fa-puzzle-piece"></i> Componentes</a>
+          <a class="nav-link" href="#" data-section="actividades"><i class="fas fa-tasks"></i> Actividades</a>
+          <a class="nav-link" href="#" data-section="calendario"><i class="fas fa-calendar-alt"></i> Cronograma</a>
+          <a class="nav-link" href="#" data-section="productos"><i class="fas fa-box-open"></i> Productos</a>
+          <a class="nav-link" href="#" data-section="configuracion"><i class="fas fa-cog"></i> Configuración</a>
+        </nav>
+      </div>
 
-        // Inicializar la aplicación
-        document.addEventListener('DOMContentLoaded', function() {
-            // Establecer fecha actual
-            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            // Configurar navegación
-            configurarNavegacion();
-            
-            // Inicializar gráficos con datos de ProIgualdad
-            inicializarGraficos();
-            
-            // Cargar datos desde Google Sheets
-            cargarDatos();
+      <!-- Main Content -->
+      <div class="col-lg-10 col-md-9 mt-4">
+        <!-- Filtros -->
+        <div class="filter-section mb-4">
+          <div class="row align-items-center g-3">
+            <div class="col-md-3">
+              <label for="yearFilter" class="form-label">Año de Gestión</label>
+              <select class="form-select" id="yearFilter">
+                <option value="2025">2025 (Actual)</option>
+                <option value="2024">2024 (Histórico)</option>
+                <option value="2026">2026 (Próxima)</option>
+                <option value="2027">2027 (Estratégica)</option>
+                <option value="todos">Todos los años</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="componenteFilter" class="form-label">Componente</label>
+              <select class="form-select" id="componenteFilter">
+                <option value="">Todos los componentes</option>
+                <option value="1">Componente 1: Educación</option>
+                <option value="2">Componente 2: Empresas</option>
+                <option value="3">Componente 3: Medios</option>
+                <option value="4">Componente 4: Gestión</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="estadoFilter" class="form-label">Estado</label>
+              <select class="form-select" id="estadoFilter">
+                <option value="">Todos los estados</option>
+                <option value="no-iniciado">No iniciado</option>
+                <option value="en-progreso">En progreso</option>
+                <option value="completado">Completado</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-primary w-100" id="btnFiltrar">Aplicar Filtros</button>
+            </div>
+          </div>
+          <div class="mt-2 last-update" id="lastUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- Resumen General -->
+        <div id="resumen" class="dashboard-section active">
+          <h2 class="mb-4">Resumen del Proyecto ProIgualdad</h2>
+
+          <!-- Comparación entre años -->
+          <div class="year-comparison">
+            <h5><i class="fas fa-calendar-alt"></i> Comparación entre Años</h5>
+            <div class="row">
+              <div class="col-md-3 text-center"><h3>2024</h3><h4>65%</h4><small>Histórico</small></div>
+              <div class="col-md-3 text-center"><h3>2025</h3><h4>35%</h4><small>Actual</small></div>
+              <div class="col-md-3 text-center"><h3>2026</h3><h4>15%</h4><small>Próxima</small></div>
+              <div class="col-md-3 text-center"><h3>Total</h3><h4>42%</h4><small>Global</small></div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <div class="card"><div class="card-body">
+                <h5 class="card-title">Objetivo General</h5>
+                <p class="card-text">El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.</p>
+                <div class="progress mb-3"><div class="progress-bar bg-success" role="progressbar" id="progresoGeneral" style="width: 35%" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"></div></div>
+                <small id="textoProgreso">Progreso general: 35%</small>
+              </div></div>
+            </div>
+            <div class="col-md-4">
+              <div class="card kpi-card"><div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Metodologías Institucionalizadas</h6>
+                <h2 class="card-title" style="color:#e5438a;" id="metodologiasInstitucionalizadas">2/5</h2>
+                <p class="card-text">Meta: 5 metodologías en 3 DDE</p>
+              </div></div>
+              <div class="card kpi-card mt-3"><div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Productos Comunicacionales</h6>
+                <h2 class="card-title" style="color:#41c4b3;" id="productosComunicacionales">10/38</h2>
+                <p class="card-text" id="avanceProductos">26% de avance</p>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card"><div class="card-body">
+                <h5 class="card-title">Distribución por Componente (2025)</h5>
+                <canvas id="componentChart" height="250"></canvas>
+              </div></div>
+            </div>
+            <div class="col-md-6">
+              <div class="card"><div class="card-body">
+                <h5 class="card-title">Evolución de Indicadores por Año</h5>
+                <canvas id="evolutionChart" height="250"></canvas>
+              </div></div>
+            </div>
+          </div>
+
+          <!-- Tabla -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="card data-card">
+                <div class="card-header"><h5 class="card-title"><i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - Año 2025</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tablaDatos">
+                      <thead>
+                        <tr>
+                          <th>Año</th>
+                          <th>Componente</th>
+                          <th>Indicador</th>
+                          <th>Meta</th>
+                          <th>Actual</th>
+                          <th>Progreso</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody><!-- se rellena por JS --></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Otras secciones “placeholder” -->
+        <div id="indicadores" class="dashboard-section"><h2 class="mb-4">Indicadores de Desempeño</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
+        <div id="componentes" class="dashboard-section"><h2 class="mb-4">Componentes del Proyecto</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
+        <div id="actividades" class="dashboard-section"><h2 class="mb-4">Actividades</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
+        <div id="calendario" class="dashboard-section"><h2 class="mb-4">Cronograma</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
+        <div id="productos" class="dashboard-section"><h2 class="mb-4">Productos</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
+        <div id="configuracion" class="dashboard-section"><h2 class="mb-4">Configuración</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección permitirá configurar la conexión con Google Sheets.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Lógica del dashboard -->
+  <script>
+    // ===== Config =====
+    let componentChart, evolutionChart;
+    let datosGoogleSheets = { _rows: [] };
+    const SHEET_ID = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
+    const SHEET_NAME = 'DATOS_JERARQUIA'; // nombre exacto de la pestaña
+
+    // Helpers
+    const num = (v) => { if (v==null) return 0; const m=String(v).match(/-?\\d+(\\.\\d+)?/g); return m?Number(m[0].replace(',','.')):0; };
+    const pct = (a,m) => (m>0? Math.min(100, Math.round((a/m)*100)) : 0);
+    const get = (row, keys) => { for(const k of keys){ if(row[k]!=null && row[k]!=='') return row[k]; } return ''; };
+    const getYear = (r) => String(get(r,['Año_Gestión','Año_Gestion','Año','Anio','Gestion'])).trim();
+    const getComp = (r) => String(get(r,['Componente'])).trim();
+    const getIndic = (r) => String(get(r,['Indicador'])).trim();
+    const getMeta  = (r) => num(get(r,['Meta']));
+    const getAvance = (r) => num(get(r,['Avance','Avance_Actual','Actual']));
+    const getPctCumpl = (r) => { const p=get(r,['%_Cumplim','%_Cumplim.','%_Cumplimiento','Cumplimiento_%']); const n=String(p).replace('%','').trim(); return n?Number(n):null; };
+    const getEstado = (r) => String(get(r,['Estado'])).trim();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
+      configurarNavegacion();
+      inicializarGraficos();
+      // Listeners UI
+      document.getElementById('btnRefresh').addEventListener('click', cargarDatosDesdeSheet);
+      document.getElementById('btnFiltrar').addEventListener('click', aplicarFiltros);
+      document.getElementById('btnPDF').addEventListener('click', descargarPDF);
+      document.getElementById('btnExcel').addEventListener('click', descargarExcel);
+      // Carga inicial
+      cargarDatosDesdeSheet();
+    });
+
+    function configurarNavegacion(){
+      document.querySelectorAll('.nav-link').forEach(link=>{
+        link.addEventListener('click',(e)=>{
+          e.preventDefault();
+          document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+          link.classList.add('active');
+          document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active'));
+          document.getElementById(link.getAttribute('data-section'))?.classList.add('active');
         });
+      });
+    }
 
-        // Configurar navegación entre secciones
-        function configurarNavegacion() {
-            const navLinks = document.querySelectorAll('.nav-link');
-            if (navLinks.length === 0) return;
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Remover clase active de todos los links
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    // Agregar clase active al link clickeado
-                    this.classList.add('active');
-                    
-                    // Ocultar todas las secciones
-                    document.querySelectorAll('.dashboard-section').forEach(section => {
-                        section.classList.remove('active');
-                    });
-                    
-                    // Mostrar la sección correspondiente
-                    const sectionId = this.getAttribute('data-section');
-                    const section = document.getElementById(sectionId);
-                    if (section) section.classList.add('active');
-                });
-            });
-        }
+    function inicializarGraficos(){
+      const c1 = document.getElementById('componentChart')?.getContext('2d');
+      if(c1){
+        componentChart = new Chart(c1,{
+          type:'doughnut',
+          data:{ labels:['Educación','Empresas','Medios','Gestión'], datasets:[{ data:[35,25,20,20], backgroundColor:['#4a3c8d','#28a745','#17a2b8','#6c757d'], borderWidth:0 }] },
+          options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
+        });
+      }
+      const c2 = document.getElementById('evolutionChart')?.getContext('2d');
+      if(c2){
+        evolutionChart = new Chart(c2,{
+          type:'line',
+          data:{ labels:['2024','2025 (Actual)','2026 (Próx)','2027 (Estrat)'],
+            datasets:[
+              { label:'Metodologías Institucionalizadas', data:[3,2,0,0], borderColor:'#4a3c8d', backgroundColor:'rgba(74,60,141,0.1)', fill:true },
+              { label:'Productos Comunicacionales', data:[8,10,0,0], borderColor:'#e5438a', backgroundColor:'rgba(229,67,138,0.1)', fill:true }
+            ]},
+          options:{ responsive:true, scales:{ y:{ beginAtZero:true, title:{display:true,text:'Cantidad'} } } }
+        });
+      }
+    }
 
-        // Inicializar gráficos con datos de ProIgualdad
-        function inicializarGraficos() {
-            // Gráfico de componentes
-            const componentCtx = document.getElementById('componentChart');
-            if (!componentCtx) return;
-            
-            componentChart = new Chart(componentCtx.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Educación', 'Empresas', 'Medios', 'Gestión'],
-                    datasets: [{
-                        data: [35, 25, 20, 20],
-                        backgroundColor: [
-                            '#4a3c8d',  // Educación
-                            '#28a745',  // Empresas
-                            '#17a2b8',  // Medios
-                            '#6c757d'   // Gestión
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
+    // ========== Carga Google Sheets ==========
+    async function cargarDatosDesdeSheet(){
+      mostrarLoading(true);
+      try{
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+        const resp = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
+        if(!resp.ok) throw new Error('No se pudo leer Google Sheets');
+        const csv = await resp.text();
+        const parsed = Papa.parse(csv,{ header:true, skipEmptyLines:true });
+        if(parsed.errors?.length) console.warn('CSV warnings:', parsed.errors);
 
-            // Gráfico de evolución por año
-            const evolutionCtx = document.getElementById('evolutionChart');
-            if (!evolutionCtx) return;
-            
-            evolutionChart = new Chart(evolutionCtx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: ['2024', '2025 (Actual)', '2026 (Próx)', '2027 (Estrat)'],
-                    datasets: [{
-                        label: 'Metodologías Institucionalizadas',
-                        data: [3, 2, 0, 0],
-                        borderColor: '#4a3c8d',
-                        backgroundColor: 'rgba(74, 60, 141, 0.1)',
-                        fill: true
-                    }, {
-                        label: 'Productos Comunicacionales',
-                        data: [8, 10, 0, 0],
-                        borderColor: '#e5438a',
-                        backgroundColor: 'rgba(229, 67, 138, 0.1)',
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Cantidad'
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        procesarFilas(parsed.data);
+        renderTabla(parsed.data);
+        actualizarKPIsyGraficos();
+        document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
+      }catch(e){
+        console.error(e);
+        usarDatosEjemplo();
+      }finally{
+        mostrarLoading(false);
+      }
+    }
 
-        // Cargar datos desde Google Sheets
-        async function cargarDatos() {
-            mostrarLoading(true);
-            
-            try {
-                // Usar el método de "Publicar en web" que no requiere API Key
-                const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTzxrLB6WRRr4-_IfGvMvXS0S9vDM-OZuk9yo0rsmDmeNQQ2v78I48VWLsFRzV8O4fFite4a2HX05dJ/pubhtml';
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error('Error al cargar datos desde Google Sheets');
-                }
-                
-                const csvData = await response.text();
-                console.log('Datos CSV recibidos:', csvData);
-                
-                // Procesar datos CSV
-                const lineas = csvData.split('\n');
-                const datos = [];
-                
-                for (let i = 0; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
-                    if (linea !== '') {
-                        // Procesar línea CSV
-                        const campos = linea.split(',').map(campo => campo.trim().replace(/^"|"$/g, ''));
-                        datos.push(campos);
-                    }
-                }
-                
-                if (datos.length > 1) {
-                    procesarDatos(datos);
-                    actualizarInterfaz();
-                    document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
-                } else {
-                    console.warn('No se encontraron datos en la hoja de cálculo, usando datos de ejemplo');
-                    usarDatosEjemplo();
-                }
-            } catch (error) {
-                console.error('Error al cargar datos desde Google Sheets:', error);
-                // Usar datos de ejemplo en caso de error
-                usarDatosEjemplo();
-            } finally {
-                mostrarLoading(false);
-            }
-        }
+    function procesarFilas(rows){
+      datosGoogleSheets._rows = rows;
+      const suma = (arr)=>arr.reduce((a,b)=>a+b,0);
 
-        // Procesar datos obtenidos de Google Sheets
-        function procesarDatos(datos) {
-            console.log('Datos procesados:', datos);
-            
-            // Aquí procesarías los datos según la estructura de tu hoja de cálculo
-            // Por ahora usamos datos de ejemplo
-            datosGoogleSheets = {
-                metodologias: 2,
-                instrumentos: 3,
-                sello: 1,
-                buenasPracticas: 2,
-                productos: 10,
-                productosServidores: 1,
-                progresoGeneral: 35
-            };
-        }
+      const metodologias = rows.filter(r=>getIndic(r).toLowerCase().includes('metodolog')).map(getAvance);
+      const instrumentos = rows.filter(r=>getIndic(r).toLowerCase().includes('instrument')).map(getAvance);
+      const sello        = rows.filter(r=>getIndic(r).toLowerCase().includes('sello')).map(getAvance);
+      const buenas       = rows.filter(r=>getIndic(r).toLowerCase().includes('buena')).map(getAvance);
+      const productos    = rows.filter(r=>getIndic(r).toLowerCase().includes('producto')).map(getAvance);
 
-        // Usar datos de ejemplo si no se pueden cargar desde Google Sheets
-        function usarDatosEjemplo() {
-            datosGoogleSheets = {
-                metodologias: 2,
-                instrumentos: 3,
-                sello: 1,
-                buenasPracticas: 2,
-                productos: 10,
-                productosServidores: 1,
-                progresoGeneral: 35
-            };
-            
-            document.getElementById('lastUpdate').textContent = 'Última actualización: Usando datos de ejemplo';
-            actualizarInterfaz();
-        }
+      const porcentajes = rows.map(r=>{
+        const p=getPctCumpl(r);
+        if(p!=null && !Number.isNaN(p)) return Math.max(0,Math.min(100,Math.round(p)));
+        const a=getAvance(r), m=getMeta(r);
+        return m>0 ? pct(a,m) : null;
+      }).filter(x=>x!==null);
 
-        // Actualizar la interfaz con los datos cargados
-        function actualizarInterfaz() {
-            // Actualizar KPIs
-            document.getElementById('metodologiasInstitucionalizadas').textContent = `${datosGoogleSheets.metodologias}/5`;
-            document.getElementById('productosComunicacionales').textContent = `${datosGoogleSheets.productos}/38`;
-            document.getElementById('avanceProductos').textContent = `${Math.round((datosGoogleSheets.productos/38)*100)}% de avance`;
-            
-            // Actualizar barras de progreso
-            const progresoGeneral = document.getElementById('progresoGeneral');
-            if (progresoGeneral) {
-                progresoGeneral.style.width = `${datosGoogleSheets.progresoGeneral}%`;
-                progresoGeneral.setAttribute('aria-valuenow', datosGoogleSheets.progresoGeneral);
-            }
-            
-            const textoProgreso = document.getElementById('textoProgreso');
-            if (textoProgreso) {
-                textoProgreso.textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
-            }
-            
-            // Actualizar gráficos
-            actualizarGraficos();
-        }
+      datosGoogleSheets.metodologias   = suma(metodologias);
+      datosGoogleSheets.instrumentos   = suma(instrumentos);
+      datosGoogleSheets.sello          = suma(sello);
+      datosGoogleSheets.buenasPracticas= suma(buenas);
+      datosGoogleSheets.productos      = suma(productos);
+      datosGoogleSheets.progresoGeneral= porcentajes.length? Math.round(suma(porcentajes)/porcentajes.length) : 0;
 
-        // Actualizar gráficos con nuevos datos
-        function actualizarGraficos() {
-            // Actualizar gráfico de componentes
-            if (componentChart) {
-                componentChart.data.datasets[0].data = [
-                    30 + (datosGoogleSheets.progresoGeneral / 100 * 20),
-                    20 + (datosGoogleSheets.progresoGeneral / 100 * 15),
-                    25 + (datosGoogleSheets.progresoGeneral / 100 * 15),
-                    20 + (datosGoogleSheets.progresoGeneral / 100 * 10)
-                ];
-                componentChart.update();
-            }
-        }
+      const dist={C1:0,C2:0,C3:0,C4:0};
+      rows.forEach(r=>{
+        const c=getComp(r);
+        const n=(c.match(/\\d+/)||[''])[0];
+        if(n && dist['C'+n]!=null) dist['C'+n]+=1;
+      });
+      datosGoogleSheets._dist = dist;
+    }
 
-        // Mostrar/ocultar overlay de carga
-        function mostrarLoading(mostrar) {
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = mostrar ? 'flex' : 'none';
-            }
-        }
+    function renderTabla(rows){
+      const tbody=document.querySelector('#tablaDatos tbody');
+      if(!tbody) return;
+      tbody.innerHTML='';
+      rows.forEach(r=>{
+        const year=getYear(r);
+        const comp=getComp(r);
+        const indic=getIndic(r);
+        const meta=getMeta(r);
+        const avan=getAvance(r);
+        const p=getPctCumpl(r);
+        const perc = p!=null? Math.round(p) : pct(avan,meta);
+        const estado=getEstado(r);
+        const compNum=(comp.match(/\\d+/)||['?'])[0];
 
-        // Aplicar filtros
-        function aplicarFiltros() {
-            const year = document.getElementById('yearFilter').value;
-            const componente = document.getElementById('componenteFilter').value;
-            const estado = document.getElementById('estadoFilter').value;
-            
-            console.log('Aplicando filtros:', { year, componente, estado });
-            // Aquí implementarías la lógica de filtrado
-            cargarDatos();
-        }
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${year||'—'}</td>
+          <td><span class="component-badge">${compNum? 'C'+compNum : 'C?'}</span> ${comp||''}</td>
+          <td>${indic||''}</td>
+          <td>${meta||''}</td>
+          <td>${avan||''}</td>
+          <td>
+            <div class="progress" style="height:10px;">
+              <div class="progress-bar" role="progressbar" style="width:${perc}%;" aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100">${perc}%</div>
+            </div>
+          </td>
+          <td>${badgeEstado(estado)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-        // Función para descargar PDF
-        function descargarPDF() {
-            const doc = new jspdf.jsPDF();
-            const year = document.getElementById('yearFilter').value;
-            
-            // Título
-            doc.setFontSize(20);
-            doc.text(`Reporte ProIgualdad - Año ${year}`, 105, 15, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text("Fecha: " + new Date().toLocaleDateString(), 105, 22, { align: 'center' });
-            
-            // Información del proyecto
-            doc.setFontSize(14);
-            doc.text("Objetivo General:", 20, 40);
-            doc.setFontSize(10);
-            const objetivoText = "El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.";
-            doc.text(objetivoText, 20, 50, { maxWidth: 170 });
-            
-            // Avances
-            doc.setFontSize(14);
-            doc.text("Avances por Componente:", 20, 80);
-            doc.setFontSize(10);
-            doc.text(`• Educación: ${datosGoogleSheets.metodologias}/5 metodologías institucionalizadas`, 20, 90);
-            doc.text(`• Empresas: ${datosGoogleSheets.buenasPracticas}/5 buenas prácticas compartidas`, 20, 100);
-            doc.text(`• Medios: ${datosGoogleSheets.productos}/38 productos comunicacionales`, 20, 110);
-            
-            // Guardar
-            doc.save(`reporte-proigualdad-${year}.pdf`);
-            alert(`¡Reporte PDF para ${year} descargado!`);
-        }
+    function actualizarKPIsyGraficos(){
+      document.getElementById('metodologiasInstitucionalizadas').textContent = `${datosGoogleSheets.metodologias}/5`;
+      document.getElementById('productosComunicacionales').textContent = `${datosGoogleSheets.productos}/38`;
+      document.getElementById('avanceProductos').textContent = `${Math.round((datosGoogleSheets.productos/38)*100)}% de avance`;
 
-        // Función para descargar Excel
-        function descargarExcel() {
-            const year = document.getElementById('yearFilter').value;
-            const wb = XLSX.utils.book_new();
-            
-            // Datos de ProIgualdad
-            const datos = [
-                ['Indicador', 'Meta', 'Actual', 'Progreso'],
-                ['Metodologías educativas institucionalizadas', 5, datosGoogleSheets.metodologias, `${Math.round((datosGoogleSheets.metodologias/5)*100)}%`],
-                ['Instrumentos de capacitación piloteados', 6, datosGoogleSheets.instrumentos, `${Math.round((datosGoogleSheets.instrumentos/6)*100)}%`],
-                ['Instrumento de sello ampliado', 1, datosGoogleSheets.sello, '100%'],
-                ['Buenas prácticas compartidas', 5, datosGoogleSheets.buenasPracticas, `${Math.round((datosGoogleSheets.buenasPracticas/5)*100)}%`],
-                ['Productos comunicacionales', 38, datosGoogleSheets.productos, `${Math.round((datosGoogleSheets.productos/38)*100)}%`]
-            ];
-            
-            // Crear hoja
-            const ws = XLSX.utils.aoa_to_sheet(datos);
-            XLSX.utils.book_append_sheet(wb, ws, `Reporte ${year}`);
-            
-            // Guardar
-            XLSX.writeFile(wb, `reporte-proigualdad-${year}.xlsx`);
-            alert(`¡Reporte Excel para ${year} descargado!`);
-        }
+      const barra=document.getElementById('progresoGeneral');
+      if(barra){ barra.style.width = `${datosGoogleSheets.progresoGeneral}%`; barra.setAttribute('aria-valuenow',datosGoogleSheets.progresoGeneral); }
+      const texto=document.getElementById('textoProgreso');
+      if(texto) texto.textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
 
-        // Función para recargar datos
-        function cargarDatos() {
-            mostrarLoading(true);
-            setTimeout(() => {
-                // Simular carga de datos
-                usarDatosEjemplo();
-                mostrarLoading(false);
-            }, 1500);
-        }
-    </script>
+      if(componentChart && datosGoogleSheets._dist){
+        const d=datosGoogleSheets._dist;
+        componentChart.data.datasets[0].data = [d.C1||0,d.C2||0,d.C3||0,d.C4||0];
+        componentChart.update();
+      }
+      if(evolutionChart) evolutionChart.update();
+    }
+
+    function badgeEstado(e=''){
+      const v=e.toLowerCase();
+      if(v.includes('complet')) return '<span class="badge bg-success">Completado</span>';
+      if(v.includes('progreso')||v.includes('en proceso')) return '<span class="badge bg-warning">En progreso</span>';
+      if(v.includes('no')) return '<span class="badge bg-secondary">No iniciado</span>';
+      return `<span class="badge bg-light text-dark">${e||'—'}</span>`;
+    }
+
+    function mostrarLoading(mostrar){
+      const overlay=document.getElementById('loadingOverlay');
+      if(overlay) overlay.style.display = mostrar ? 'flex':'none';
+    }
+
+    // ===== Filtros UI =====
+    function aplicarFiltros(){
+      const year=document.getElementById('yearFilter').value;
+      const componente=document.getElementById('componenteFilter').value; // "1".."4" o ""
+      const estado=document.getElementById('estadoFilter').value;         // claves o ""
+
+      const tbody=document.querySelector('#tablaDatos tbody');
+      if(!tbody) return;
+      tbody.querySelectorAll('tr').forEach(tr=>{
+        const tds=tr.querySelectorAll('td');
+        const okYear=(year==='todos') || (tds[0]?.textContent.trim()===year);
+        const okComp=(!componente) || (tds[1]?.textContent.includes(`C${componente}`));
+        const estText=tds[6]?.textContent.toLowerCase()||'';
+        const okEstado=!estado ||
+          (estado==='no-iniciado' && estText.includes('no iniciado')) ||
+          (estado==='en-progreso' && estText.includes('en progreso')) ||
+          (estado==='completado' && estText.includes('completado'));
+        tr.style.display = (okYear && okComp && okEstado) ? '' : 'none';
+      });
+    }
+
+    // ===== Exportar =====
+    function descargarPDF(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const year = document.getElementById('yearFilter').value;
+
+      doc.setFontSize(20);
+      doc.text(`Reporte ProIgualdad - Año ${year}`, 105, 15, { align:'center' });
+      doc.setFontSize(12);
+      doc.text("Fecha: " + new Date().toLocaleDateString(), 105, 22, { align:'center' });
+
+      doc.setFontSize(14); doc.text("Objetivo General:", 20, 40);
+      doc.setFontSize(10);
+      const objetivoText = "El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.";
+      doc.text(objetivoText, 20, 50, { maxWidth: 170 });
+
+      doc.setFontSize(14); doc.text("Avances por Componente:", 20, 80);
+      doc.setFontSize(10);
+      doc.text(`• Educación: ${datosGoogleSheets.metodologias}/5 metodologías institucionalizadas`, 20, 90);
+      doc.text(`• Empresas: ${datosGoogleSheets.buenasPracticas}/5 buenas prácticas compartidas`, 20, 100);
+      doc.text(`• Medios: ${datosGoogleSheets.productos}/38 productos comunicacionales`, 20, 110);
+
+      doc.save(`reporte-proigualdad-${year}.pdf`);
+    }
+
+    function descargarExcel(){
+      const year = document.getElementById('yearFilter').value;
+      const wb = XLSX.utils.book_new();
+      const datos = [
+        ['Indicador','Meta','Actual','Progreso'],
+        ['Metodologías educativas institucionalizadas', 5, datosGoogleSheets.metodologias, `${Math.round((datosGoogleSheets.metodologias/5)*100)}%`],
+        ['Instrumentos de capacitación piloteados',     6, datosGoogleSheets.instrumentos, `${Math.round((datosGoogleSheets.instrumentos/6)*100)}%`],
+        ['Instrumento de sello ampliado',               1, datosGoogleSheets.sello,          datosGoogleSheets.sello? '100%':'0%'],
+        ['Buenas prácticas compartidas',                5, datosGoogleSheets.buenasPracticas,`${Math.round((datosGoogleSheets.buenasPracticas/5)*100)}%`],
+        ['Productos comunicacionales',                 38, datosGoogleSheets.productos,      `${Math.round((datosGoogleSheets.productos/38)*100)}%`]
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(datos);
+      XLSX.utils.book_append_sheet(wb, ws, `Reporte ${year}`);
+      XLSX.writeFile(wb, `reporte-proigualdad-${year}.xlsx`);
+    }
+
+    // Fallback si la sheet no está publicada
+    function usarDatosEjemplo(){
+      datosGoogleSheets = { metodologias:2, instrumentos:3, sello:1, buenasPracticas:2, productos:10, progresoGeneral:35, _rows:[] };
+      document.getElementById('lastUpdate').textContent = 'Última actualización: Usando datos de ejemplo';
+      actualizarKPIsyGraficos();
+    }
+  </script>
 </body>
 </html>
