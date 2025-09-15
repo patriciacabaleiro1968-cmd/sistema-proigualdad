@@ -15,7 +15,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- Parser CSV -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
@@ -41,6 +40,22 @@
     .last-update{ font-size:.8rem; color:#6c757d; }
     .component-badge{ background:var(--primary); color:#fff; padding:3px 8px; border-radius:4px; font-size:.8rem; margin-right:5px;}
     .year-comparison{ background:linear-gradient(135deg,#667eea 0%, #764ba2 100%); color:#fff; border-radius:10px; padding:15px; margin-bottom:20px;}
+    .badge-pill { border-radius: 20px; }
+
+    /* ===== Mini-Gantt (Cronograma) ===== */
+    .gantt-legend .badge{ font-weight:500; }
+    .gantt-header,.gantt-row{ display:grid; grid-template-columns: 260px repeat(12, 1fr); gap:4px; }
+    .gantt-headcell, .gantt-activity, .gantt-cell{
+      padding:6px 8px; border-radius:6px; border:1px solid #e9ecef; background:#f8f9fa; font-size:12px;
+    }
+    .gantt-headcell{ background:#fff; border-color:#e9ecef; text-align:center; font-weight:600; }
+    .gantt-activity{ background:#fff; font-weight:600; }
+    .gantt-cell--todo{ background:#e2e3e5; border-color:#d3d6d8; }
+    .gantt-cell--prog{ background:#fff3cd; border-color:#ffecb5; }
+    .gantt-cell--done{ background:#d1e7dd; border-color:#badbcc; }
+    .gantt-scroller{ max-height:520px; overflow:auto; border:1px solid #e9ecef; border-radius:8px; }
+    .gantt-header-wrap{ position:sticky; top:0; background:#fff; z-index:1; border:1px solid #e9ecef; border-radius:8px; border-bottom:none; }
+    .gantt-body-wrap{ border:1px solid #e9ecef; border-top:none; border-radius:0 0 8px 8px; }
   </style>
 </head>
 <body>
@@ -228,10 +243,91 @@
           </div>
         </div>
 
+        <!-- Actividades (tabla dinámica) -->
+        <div id="actividades" class="dashboard-section">
+          <h2 class="mb-4">Actividades</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="row g-2 align-items-center mb-3">
+                <div class="col-md-8">
+                  <span class="badge bg-secondary badge-pill me-2">Total: <span id="actTotal">0</span></span>
+                  <span class="badge bg-warning text-dark badge-pill me-2">En progreso: <span id="actProg">0</span></span>
+                  <span class="badge bg-success badge-pill me-2">Completadas: <span id="actComp">0</span></span>
+                  <span class="badge bg-light text-dark badge-pill">No iniciadas: <span id="actNoIni">0</span></span>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                  <input id="searchActividades" class="form-control form-control-sm" placeholder="Buscar actividad, indicador, responsable..."/>
+                  <button class="btn btn-sm btn-outline-secondary" id="btnActividadesCSV">
+                    <i class="fa-solid fa-file-arrow-down"></i> CSV
+                  </button>
+                </div>
+              </div>
+              <div class="table-responsive" style="max-height:520px; overflow:auto;">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Indicador</th>
+                      <th>Actividad</th>
+                      <th>Subactividad</th>
+                      <th>Tarea</th>
+                      <th>Responsable</th>
+                      <th>Mes</th>
+                      <th style="min-width:160px;">% Avance</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyActividades"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cronograma (Mini-Gantt) -->
+        <div id="calendario" class="dashboard-section">
+          <h2 class="mb-4">Cronograma</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="gantt-legend">
+                  <span class="badge bg-secondary me-2">No iniciado</span>
+                  <span class="badge bg-warning text-dark me-2">En progreso</span>
+                  <span class="badge bg-success">Completado</span>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" id="btnCronogramaCSV">
+                  <i class="fa-solid fa-file-arrow-down"></i> CSV
+                </button>
+              </div>
+
+              <!-- Encabezado de meses -->
+              <div class="gantt-header-wrap mb-0">
+                <div class="gantt-header">
+                  <div class="gantt-headcell text-start">Actividad</div>
+                  <div class="gantt-headcell">Ene</div>
+                  <div class="gantt-headcell">Feb</div>
+                  <div class="gantt-headcell">Mar</div>
+                  <div class="gantt-headcell">Abr</div>
+                  <div class="gantt-headcell">May</div>
+                  <div class="gantt-headcell">Jun</div>
+                  <div class="gantt-headcell">Jul</div>
+                  <div class="gantt-headcell">Ago</div>
+                  <div class="gantt-headcell">Sep</div>
+                  <div class="gantt-headcell">Oct</div>
+                  <div class="gantt-headcell">Nov</div>
+                  <div class="gantt-headcell">Dic</div>
+                </div>
+              </div>
+
+              <!-- Cuerpo del Gantt -->
+              <div class="gantt-scroller gantt-body-wrap">
+                <div id="ganttBody"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Otras secciones “placeholder” -->
         <div id="componentes" class="dashboard-section"><h2 class="mb-4">Componentes del Proyecto</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
-        <div id="actividades" class="dashboard-section"><h2 class="mb-4">Actividades</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
-        <div id="calendario" class="dashboard-section"><h2 class="mb-4">Cronograma</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
         <div id="productos" class="dashboard-section"><h2 class="mb-4">Productos</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
         <div id="configuracion" class="dashboard-section"><h2 class="mb-4">Configuración</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección permitirá configurar la conexión con Google Sheets.</div></div>
       </div>
@@ -247,7 +343,6 @@
     let componentChart, evolutionChart, indicadoresChart;
     let datosGoogleSheets = { _rows: [] };
 
-    // Ajusta estos valores si cambiaste de hoja
     const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
     const SHEET_GID = '0'; // <-- cambia si tu pestaña DATOS_JERARQUIA tiene otro gid
 
@@ -257,29 +352,36 @@
     const getIndic    = (r) => String(r.Indicador || '').trim();
     const getMeta     = (r) => Number(r.Meta || 0);
     const getAvance   = (r) => Number(r.Avance || 0);
-    const getPctCumpl = (r) => {
-      const n = (r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.');
-      return n ? Number(n) : null;
-    };
+    const getPctCumpl = (r) => { const n=(r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.'); return n?Number(n):null; };
     const getEstado   = (r) => String(r.Estado || '').trim();
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
       configurarNavegacion();
       inicializarGraficos();
+
       // Listeners UI
       document.getElementById('btnRefresh').addEventListener('click', cargarDatosDesdeSheet);
-      document.getElementById('btnFiltrar').addEventListener('click', () => { aplicarFiltros(); if (isIndicadoresActive()) renderIndicadoresChart(); });
+      document.getElementById('btnFiltrar').addEventListener('click', () => {
+        aplicarFiltros();
+        if (isIndicadoresActive()) renderIndicadoresChart();
+        if (isActividadesActive()) renderActividades();
+        if (isCronogramaActive()) renderCronograma();
+      });
       document.getElementById('btnPDF').addEventListener('click', descargarPDF);
       document.getElementById('btnExcel').addEventListener('click', descargarExcel);
       document.getElementById('btnIndicadoresCSV')?.addEventListener('click', descargarIndicadoresCSV);
+      document.getElementById('btnActividadesCSV')?.addEventListener('click', descargarActividadesCSV);
+      document.getElementById('btnCronogramaCSV')?.addEventListener('click', descargarCronogramaCSV);
+      document.getElementById('searchActividades')?.addEventListener('input', () => { if (isActividadesActive()) renderActividades(); });
+
       // Carga inicial
       cargarDatosDesdeSheet();
     });
 
-    function isIndicadoresActive(){
-      return document.querySelector('.dashboard-section.active')?.id === 'indicadores';
-    }
+    function isIndicadoresActive(){ return document.querySelector('.dashboard-section.active')?.id === 'indicadores'; }
+    function isActividadesActive(){ return document.querySelector('.dashboard-section.active')?.id === 'actividades'; }
+    function isCronogramaActive(){ return document.querySelector('.dashboard-section.active')?.id === 'calendario'; }
 
     function configurarNavegacion(){
       document.querySelectorAll('.nav-link').forEach(link=>{
@@ -290,7 +392,10 @@
           document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active'));
           const sectionId = link.getAttribute('data-section');
           document.getElementById(sectionId)?.classList.add('active');
+
           if(sectionId === 'indicadores'){ renderIndicadoresChart(); }
+          if(sectionId === 'actividades'){ renderActividades(); }
+          if(sectionId === 'calendario'){ renderCronograma(); }
         });
       });
     }
@@ -338,6 +443,8 @@
         document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
 
         if(isIndicadoresActive()) renderIndicadoresChart();
+        if(isActividadesActive()) renderActividades();
+        if(isCronogramaActive()) renderCronograma();
       }catch(e){
         console.error(e);
         usarDatosEjemplo();
@@ -350,7 +457,7 @@
       datosGoogleSheets._rows = rows;
       const suma = (arr)=>arr.reduce((a,b)=>a+b,0);
 
-      // KPIs por texto del indicador (puedes migrar a Indicador_ID cuando quieras)
+      // KPIs por texto (puedes migrar a Indicador_ID cuando quieras)
       const metodologias = rows.filter(r=>getIndic(r).toLowerCase().includes('metodolog')).map(getAvance);
       const instrumentos = rows.filter(r=>getIndic(r).toLowerCase().includes('instrument')).map(getAvance);
       const sello        = rows.filter(r=>getIndic(r).toLowerCase().includes('sello')).map(getAvance);
@@ -485,10 +592,7 @@
             y: { beginAtZero: true, max: 100, title: { display: true, text: '% de avance' } },
             x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
           },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (ctx)=> `${ctx.parsed.y}%` } }
-          }
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx)=> `${ctx.parsed.y}%` } } }
         }
       };
 
@@ -525,6 +629,197 @@
       XLSX.writeFile(wb, 'indicadores_avance.csv');
     }
 
+    // ===== Actividades: render y export =====
+    function renderActividades(){
+      const tbody = document.getElementById('tbodyActividades');
+      if(!tbody || !datosGoogleSheets._rows?.length) return;
+
+      const search = (document.getElementById('searchActividades')?.value || '').toLowerCase();
+      const rows = filasFiltradas(datosGoogleSheets._rows).filter(r=>{
+        if(!search) return true;
+        const blob = [
+          getIndic(r), r.Actividad_Principal, r.Subactividad, r.Tarea_Especifica,
+          r.Responsable, r.Mes, getEstado(r)
+        ].map(x => (x||'').toString().toLowerCase()).join(' ');
+        return blob.includes(search);
+      });
+
+      rows.sort((a,b)=>
+        (a.Actividad_Principal||'').localeCompare(b.Actividad_Principal||'') ||
+        (a.Subactividad||'').localeCompare(b.Subactividad||'') ||
+        (a.Tarea_Especifica||'').localeCompare(b.Tarea_Especifica||'')
+      );
+
+      tbody.innerHTML = '';
+      let total=0, comp=0, prog=0, noini=0;
+
+      rows.forEach(r=>{
+        total++;
+        const estado = getEstado(r).toLowerCase();
+        if (estado.includes('complet')) comp++;
+        else if (estado.includes('progreso') || estado.includes('proceso')) prog++;
+        else if (estado.includes('no')) noini++;
+
+        const meta=getMeta(r), av=getAvance(r);
+        const perc = (getPctCumpl(r) ?? (meta>0 ? Math.min(100, Math.round((av/meta)*100)) : 0));
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${getIndic(r) || ''}</td>
+          <td>${r.Actividad_Principal || ''}</td>
+          <td>${r.Subactividad || ''}</td>
+          <td>${r.Tarea_Especifica || ''}</td>
+          <td>${r.Responsable || ''}</td>
+          <td>${r.Mes || ''}</td>
+          <td>
+            <div class="progress" style="height:10px;">
+              <div class="progress-bar" role="progressbar" style="width:${perc}%;" aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100">${perc}%</div>
+            </div>
+          </td>
+          <td>${badgeEstado(getEstado(r))}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('actTotal').textContent = total;
+      document.getElementById('actProg').textContent  = prog;
+      document.getElementById('actComp').textContent  = comp;
+      document.getElementById('actNoIni').textContent = noini;
+    }
+
+    function descargarActividadesCSV(){
+      if(!datosGoogleSheets._rows?.length) return;
+      const search = (document.getElementById('searchActividades')?.value || '').toLowerCase();
+      const rows = filasFiltradas(datosGoogleSheets._rows).filter(r=>{
+        if(!search) return true;
+        const blob = [
+          getIndic(r), r.Actividad_Principal, r.Subactividad, r.Tarea_Especifica,
+          r.Responsable, r.Mes, getEstado(r)
+        ].map(x => (x||'').toString().toLowerCase()).join(' ');
+        return blob.includes(search);
+      });
+
+      const out = [['Indicador','Actividad','Subactividad','Tarea','Responsable','Mes','Porcentaje_Avance','Estado']];
+      rows.forEach(r=>{
+        const meta=getMeta(r), av=getAvance(r);
+        const p = (getPctCumpl(r) ?? (meta>0 ? (av/meta)*100 : 0));
+        out.push([
+          getIndic(r) || '', r.Actividad_Principal || '', r.Subactividad || '', r.Tarea_Especifica || '',
+          r.Responsable || '', r.Mes || '', `${Math.round(Math.max(0,Math.min(100,p)))}%`, getEstado(r) || ''
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(out);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Actividades');
+      XLSX.writeFile(wb, 'actividades_filtradas.csv');
+    }
+
+    // ===== Cronograma (Mini-Gantt) =====
+    const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    function mesToIndex(val){
+      if(!val && val!==0) return null;
+      let s = String(val).trim().toLowerCase().replace(/\./g,'');
+      const map = {
+        'ene':1,'enero':1,
+        'feb':2,'febrero':2,
+        'mar':3,'marzo':3,
+        'abr':4,'abril':4,
+        'may':5,'mayo':5,
+        'jun':6,'junio':6,
+        'jul':7,'julio':7,
+        'ago':8,'agosto':8,
+        'sep':9,'septiembre':9,'setiembre':9,'sept':9,'set':9,
+        'oct':10,'octubre':10,
+        'nov':11,'noviembre':11,
+        'dic':12,'diciembre':12
+      };
+      if(map[s]) return map[s];
+      const n = parseInt(s,10);
+      return (n>=1 && n<=12) ? n : null;
+    }
+    function estadoWeight(e){
+      const v = (e||'').toLowerCase();
+      if(v.includes('complet')) return 2;
+      if(v.includes('progreso') || v.includes('proceso')) return 1;
+      if(v.includes('no')) return 0;
+      return 0;
+    }
+    function classByWeight(w){
+      return (w===2)?'gantt-cell--done' : (w===1)?'gantt-cell--prog' : 'gantt-cell--todo';
+    }
+
+    function renderCronograma(){
+      const host = document.getElementById('ganttBody');
+      if(!host || !datosGoogleSheets._rows?.length) return;
+
+      const rows = filasFiltradas(datosGoogleSheets._rows);
+
+      // Agrupa por Actividad_Principal -> meses con estado más avanzado
+      const groups = {};
+      rows.forEach(r=>{
+        const act = String(r.Actividad_Principal||'').trim();
+        if(!act) return;
+        const mIdx = mesToIndex(r.Mes);
+        if(!mIdx) return;
+        const w = estadoWeight(getEstado(r));
+        if(!groups[act]) groups[act] = { months: {} };
+        const actual = groups[act].months[mIdx] ?? -1;
+        groups[act].months[mIdx] = Math.max(actual, w);
+      });
+
+      const acts = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+      host.innerHTML = '';
+      acts.forEach(act=>{
+        const row = document.createElement('div');
+        row.className = 'gantt-row';
+        const label = document.createElement('div');
+        label.className = 'gantt-activity';
+        label.textContent = act;
+        row.appendChild(label);
+        for(let i=1;i<=12;i++){
+          const cell = document.createElement('div');
+          cell.className = `gantt-cell ${classByWeight(groups[act].months[i] ?? -1)}`;
+          cell.title = `${act} - ${MONTHS[i-1]}`;
+          cell.innerHTML = '&nbsp;';
+          row.appendChild(cell);
+        }
+        host.appendChild(row);
+      });
+    }
+
+    function descargarCronogramaCSV(){
+      const rows = filasFiltradas(datosGoogleSheets._rows);
+      const groups = {};
+      rows.forEach(r=>{
+        const act = String(r.Actividad_Principal||'').trim();
+        if(!act) return;
+        const mIdx = mesToIndex(r.Mes);
+        if(!mIdx) return;
+        const w = estadoWeight(getEstado(r));
+        if(!groups[act]) groups[act] = { months: {} };
+        const actual = groups[act].months[mIdx] ?? -1;
+        groups[act].months[mIdx] = Math.max(actual, w);
+      });
+
+      const out = [['Actividad_Principal', ...MONTHS]];
+      const labelByW = ['No iniciado','En progreso','Completado'];
+      Object.keys(groups).sort().forEach(act=>{
+        const row = [act];
+        for(let i=1;i<=12;i++){
+          const w = groups[act].months[i];
+          row.push(w!=null && w>=0 ? labelByW[w] : '');
+        }
+        out.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(out);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
+      XLSX.writeFile(wb, 'cronograma.csv');
+    }
+
+    // ===== Utilidades comunes =====
     function badgeEstado(e=''){
       const v=e.toLowerCase();
       if(v.includes('complet')) return '<span class="badge bg-success">Completado</span>';
@@ -532,13 +827,12 @@
       if(v.includes('no')) return '<span class="badge bg-secondary">No iniciado</span>';
       return `<span class="badge bg-light text-dark">${e||'—'}</span>`;
     }
-
     function mostrarLoading(mostrar){
       const overlay=document.getElementById('loadingOverlay');
       if(overlay) overlay.style.display = mostrar ? 'flex':'none';
     }
 
-    // ===== Filtros UI =====
+    // ===== Filtros UI (tabla del Resumen) =====
     function aplicarFiltros(){
       const year=document.getElementById('yearFilter').value;
       const componente=document.getElementById('componenteFilter').value;
@@ -559,7 +853,7 @@
       });
     }
 
-    // ===== Exportar =====
+    // ===== Exportar generales =====
     function descargarPDF(){
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
@@ -606,6 +900,8 @@
       document.getElementById('lastUpdate').textContent = 'Última actualización: Usando datos de ejemplo';
       actualizarKPIsyGraficos();
       if(isIndicadoresActive()) renderIndicadoresChart();
+      if(isActividadesActive()) renderActividades();
+      if(isCronogramaActive()) renderCronograma();
     }
   </script>
 </body>
