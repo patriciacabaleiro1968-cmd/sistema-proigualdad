@@ -9,12 +9,11 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
-  <!-- Gráficos / Exportación -->
+  <!-- Gráficos / Exportación / CSV -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
@@ -40,26 +39,16 @@
     .last-update{ font-size:.8rem; color:#6c757d; }
     .component-badge{ background:var(--primary); color:#fff; padding:3px 8px; border-radius:4px; font-size:.8rem; margin-right:5px;}
     .year-comparison{ background:linear-gradient(135deg,#667eea 0%, #764ba2 100%); color:#fff; border-radius:10px; padding:15px; margin-bottom:20px;}
-    .badge-pill { border-radius: 20px; }
 
-    /* ===== Mini-Gantt (Cronograma) ===== */
-    .gantt-legend .badge{ font-weight:500; }
+    /* Mini-Gantt */
     .gantt-header,.gantt-row{ display:grid; grid-template-columns: 260px repeat(12, 1fr); gap:4px; }
-    .gantt-headcell, .gantt-activity, .gantt-cell{
-      padding:6px 8px; border-radius:6px; border:1px solid #e9ecef; background:#f8f9fa; font-size:12px;
-    }
-    .gantt-headcell{ background:#fff; border-color:#e9ecef; text-align:center; font-weight:600; }
+    .gantt-headcell, .gantt-activity, .gantt-cell{ padding:6px 8px; border-radius:6px; border:1px solid #e9ecef; background:#f8f9fa; font-size:12px; }
+    .gantt-headcell{ background:#fff; text-align:center; font-weight:600; }
     .gantt-activity{ background:#fff; font-weight:600; }
-    .gantt-cell--todo{ background:#e2e3e5; border-color:#d3d6d8; }
-    .gantt-cell--prog{ background:#fff3cd; border-color:#ffecb5; }
-    .gantt-cell--done{ background:#d1e7dd; border-color:#badbcc; }
+    .gantt-cell--todo{ background:#e2e3e5; }
+    .gantt-cell--prog{ background:#fff3cd; }
+    .gantt-cell--done{ background:#d1e7dd; }
     .gantt-scroller{ max-height:520px; overflow:auto; border:1px solid #e9ecef; border-radius:8px; }
-    .gantt-header-wrap{ position:sticky; top:0; background:#fff; z-index:1; border:1px solid #e9ecef; border-radius:8px; border-bottom:none; }
-    .gantt-body-wrap{ border:1px solid #e9ecef; border-top:none; border-radius:0 0 8px 8px; }
-
-    /* ===== Componentes ===== */
-    .comp-card .big { font-size: 2rem; font-weight: 700; }
-    .comp-card small { color:#6c757d; }
   </style>
 </head>
 <body>
@@ -77,9 +66,7 @@
       <a class="navbar-brand" href="#"><i class="fas fa-venus-double"></i> Sistema de Monitoreo - ProIgualdad</a>
       <div class="d-flex align-items-center">
         <span class="text-light me-3" id="currentDate"></span>
-        <button id="btnRefresh" class="btn btn-outline-light btn-sm me-2">
-          <i class="fas fa-sync-alt"></i> Actualizar
-        </button>
+        <button id="btnRefresh" class="btn btn-outline-light btn-sm me-2"><i class="fas fa-sync-alt"></i> Actualizar</button>
         <div class="dropdown">
           <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="fas fa-download"></i> Exportar Reporte
@@ -110,14 +97,13 @@
 
       <!-- Main Content -->
       <div class="col-lg-10 col-md-9 mt-4">
-        <!-- Filtros -->
+        <!-- FILTROS GENERALES -->
         <div class="filter-section mb-4">
           <div class="row align-items-center g-3">
             <div class="col-md-3">
               <label for="yearFilter" class="form-label">Año de Gestión</label>
               <select class="form-select" id="yearFilter">
                 <option value="2025">2025 (Actual)</option>
-                <option value="2024">2024 (Histórico)</option>
                 <option value="2026">2026 (Próxima)</option>
                 <option value="2027">2027 (Estratégica)</option>
                 <option value="todos">Todos los años</option>
@@ -149,17 +135,18 @@
           <div class="mt-2 last-update" id="lastUpdate">Última actualización: --</div>
         </div>
 
-        <!-- Resumen General -->
+        <!-- ============ RESUMEN GENERAL ============ -->
         <div id="resumen" class="dashboard-section active">
           <h2 class="mb-4">Resumen del Proyecto ProIgualdad</h2>
 
+          <!-- Comparación entre años (2025-2027) -->
           <div class="year-comparison">
             <h5><i class="fas fa-calendar-alt"></i> Comparación entre Años</h5>
             <div class="row">
-              <div class="col-md-3 text-center"><h3>2024</h3><h4>65%</h4><small>Histórico</small></div>
-              <div class="col-md-3 text-center"><h3>2025</h3><h4 id="miniProgresoActual">35%</h4><small>Actual</small></div>
-              <div class="col-md-3 text-center"><h3>2026</h3><h4>15%</h4><small>Próxima</small></div>
-              <div class="col-md-3 text-center"><h3>Total</h3><h4>42%</h4><small>Global</small></div>
+              <div class="col-md-3 text-center"><h3>2025</h3><h4 id="miniProgreso2025">0%</h4><small>Actual</small></div>
+              <div class="col-md-3 text-center"><h3>2026</h3><h4 id="miniProgreso2026">0%</h4><small>Próxima</small></div>
+              <div class="col-md-3 text-center"><h3>2027</h3><h4 id="miniProgreso2027">0%</h4><small>Estratégica</small></div>
+              <div class="col-md-3 text-center"><h3>Total</h3><h4 id="miniProgresoTotal">0%</h4><small>Global</small></div>
             </div>
           </div>
 
@@ -167,19 +154,19 @@
             <div class="col-md-8">
               <div class="card"><div class="card-body">
                 <h5 class="card-title">Objetivo General</h5>
-                <p class="card-text">El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.</p>
-                <div class="progress mb-3"><div class="progress-bar bg-success" role="progressbar" id="progresoGeneral" style="width: 35%" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"></div></div>
-                <small id="textoProgreso">Progreso general: 35%</small>
+                <p class="card-text">El aporte de los actores clave en educación, empresas y medios para la igualdad de género y derechos LGBTIQA+ está fortalecido.</p>
+                <div class="progress mb-3"><div class="progress-bar bg-success" role="progressbar" id="progresoGeneral" style="width: 0%"></div></div>
+                <small id="textoProgreso">Progreso general: 0%</small>
               </div></div>
             </div>
             <div class="col-md-4">
               <div class="card kpi-card"><div class="card-body text-center">
-                <h6 class="card-subtitle mb-2 text-muted">Metodologías Institucionalizadas</h6>
+                <h6 class="text-muted">Metodologías Institucionalizadas</h6>
                 <h2 class="card-title" style="color:#e5438a;" id="metodologiasInstitucionalizadas">0/5</h2>
-                <p class="card-text">Meta: 5 metodologías en 3 DDE</p>
+                <p class="card-text">Meta de referencia: 5 en 3 DDE</p>
               </div></div>
               <div class="card kpi-card mt-3"><div class="card-body text-center">
-                <h6 class="card-subtitle mb-2 text-muted">Productos Comunicacionales</h6>
+                <h6 class="text-muted">Productos Comunicacionales</h6>
                 <h2 class="card-title" style="color:#41c4b3;" id="productosComunicacionales">0/38</h2>
                 <p class="card-text" id="avanceProductos">0% de avance</p>
               </div></div>
@@ -189,7 +176,7 @@
           <div class="row">
             <div class="col-md-6">
               <div class="card"><div class="card-body">
-                <h5 class="card-title">Distribución por Componente (2025)</h5>
+                <h5 class="card-title">Distribución por Componente (dinámica)</h5>
                 <canvas id="componentChart" height="250"></canvas>
               </div></div>
             </div>
@@ -201,11 +188,15 @@
             </div>
           </div>
 
-          <!-- Tabla -->
+          <!-- Tabla consolidada por Indicador -->
           <div class="row mt-4">
             <div class="col-12">
               <div class="card data-card">
-                <div class="card-header"><h5 class="card-title"><i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - Año 2025</h5></div>
+                <div class="card-header">
+                  <h5 class="card-title">
+                    <i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - <span id="tituloAnioTabla">Año 2025</span>
+                  </h5>
+                </div>
                 <div class="card-body">
                   <div class="table-responsive">
                     <table class="table table-striped table-hover" id="tablaDatos">
@@ -214,13 +205,13 @@
                           <th>Año</th>
                           <th>Componente</th>
                           <th>Indicador</th>
-                          <th>Meta</th>
-                          <th>Actual</th>
-                          <th>Progreso</th>
+                          <th>Meta (Σ)</th>
+                          <th>Avance (Σ)</th>
+                          <th>% Consolidado</th>
                           <th>Estado</th>
                         </tr>
                       </thead>
-                      <tbody><!-- se rellena por JS --></tbody>
+                      <tbody></tbody>
                     </table>
                   </div>
                 </div>
@@ -229,144 +220,59 @@
           </div>
         </div>
 
-        <!-- Indicadores (gráfico comparativo) -->
+        <!-- ============ INDICADORES (gráfico comparativo) ============ -->
         <div id="indicadores" class="dashboard-section">
           <h2 class="mb-4">Indicadores de Desempeño</h2>
-          <div class="card">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="small text-muted">Porcentaje de avance por indicador (filtrado por Año/Componente/Estado)</div>
-                <button class="btn btn-sm btn-outline-secondary" id="btnIndicadoresCSV">
-                  <i class="fa-solid fa-file-arrow-down"></i> Descargar CSV
-                </button>
-              </div>
-              <div style="height:380px;">
-                <canvas id="indicadoresChart"></canvas>
-              </div>
-            </div>
-          </div>
+          <div class="card"><div class="card-body"><div style="height:380px;"><canvas id="indicadoresChart"></canvas></div></div></div>
         </div>
 
-        <!-- Componentes (mejorado) -->
+        <!-- ============ COMPONENTES (resumen) ============ -->
         <div id="componentes" class="dashboard-section">
           <h2 class="mb-4">Componentes del Proyecto</h2>
-
-          <!-- Tarjetas -->
           <div class="row g-3 mb-3" id="compCards"></div>
-
-          <!-- Gráfico avance promedio -->
-          <div class="card mb-3">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="small text-muted">Avance promedio por componente (respeta filtros)</div>
-                <button class="btn btn-sm btn-outline-secondary" id="btnComponentesCSV">
-                  <i class="fa-solid fa-file-arrow-down"></i> CSV
-                </button>
-              </div>
-              <div style="height:360px;">
-                <canvas id="componentesAvanceChart"></canvas>
-              </div>
+          <div class="card mb-3"><div class="card-body"><div style="height:360px;"><canvas id="componentesAvanceChart"></canvas></div></div></div>
+          <div class="card"><div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light"><tr><th>Componente</th><th>Indicador</th><th>Meta (Σ)</th><th>Avance (Σ)</th><th>%</th><th>Estado dominante</th></tr></thead>
+                <tbody id="tbodyCompIndicadores"></tbody>
+              </table>
             </div>
-          </div>
-
-          <!-- Tabla de indicadores agregados -->
-          <div class="card">
-            <div class="card-body">
-              <div class="small text-muted mb-2">Σ Avance/Meta por indicador (según filtros actuales)</div>
-              <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Componente</th>
-                      <th>Indicador</th>
-                      <th>Meta (Σ)</th>
-                      <th>Avance (Σ)</th>
-                      <th>% (calc)</th>
-                      <th>Estado dominante</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyCompIndicadores"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          </div></div>
         </div>
 
-        <!-- Actividades (tabla dinámica) -->
+        <!-- ============ ACTIVIDADES (detalle) ============ -->
         <div id="actividades" class="dashboard-section">
           <h2 class="mb-4">Actividades</h2>
-          <div class="card">
-            <div class="card-body">
-              <div class="row g-2 align-items-center mb-3">
-                <div class="col-md-8">
-                  <span class="badge bg-secondary badge-pill me-2">Total: <span id="actTotal">0</span></span>
-                  <span class="badge bg-warning text-dark badge-pill me-2">En progreso: <span id="actProg">0</span></span>
-                  <span class="badge bg-success badge-pill me-2">Completadas: <span id="actComp">0</span></span>
-                  <span class="badge bg-light text-dark badge-pill">No iniciadas: <span id="actNoIni">0</span></span>
-                </div>
-                <div class="col-md-4 d-flex gap-2">
-                  <input id="searchActividades" class="form-control form-control-sm" placeholder="Buscar actividad, indicador, responsable..."/>
-                  <button class="btn btn-sm btn-outline-secondary" id="btnActividadesCSV">
-                    <i class="fa-solid fa-file-arrow-down"></i> CSV
-                  </button>
-                </div>
-              </div>
-              <div class="table-responsive" style="max-height:520px; overflow:auto;">
-                <table class="table table-hover align-middle">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Indicador</th>
-                      <th>Actividad</th>
-                      <th>Subactividad</th>
-                      <th>Tarea</th>
-                      <th>Responsable</th>
-                      <th>Mes</th>
-                      <th style="min-width:160px;">% Avance</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyActividades"></tbody>
-                </table>
-              </div>
+          <div class="card"><div class="card-body">
+            <div class="table-responsive" style="max-height:520px; overflow:auto;">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr><th>Indicador</th><th>Actividad</th><th>Subactividad</th><th>Tarea</th><th>Responsable</th><th>Mes</th><th style="min-width:160px;">% Avance</th><th>Estado</th></tr>
+                </thead>
+                <tbody id="tbodyActividades"></tbody>
+              </table>
             </div>
-          </div>
+          </div></div>
         </div>
 
-        <!-- Cronograma (Mini-Gantt) -->
+        <!-- ============ CRONOGRAMA (mini-Gantt) ============ -->
         <div id="calendario" class="dashboard-section">
           <h2 class="mb-4">Cronograma</h2>
-          <div class="card">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="gantt-legend">
-                  <span class="badge bg-secondary me-2">No iniciado</span>
-                  <span class="badge bg-warning text-dark me-2">En progreso</span>
-                  <span class="badge bg-success">Completado</span>
-                </div>
-                <button class="btn btn-sm btn-outline-secondary" id="btnCronogramaCSV">
-                  <i class="fa-solid fa-file-arrow-down"></i> CSV
-                </button>
-              </div>
-
-              <div class="gantt-header-wrap mb-0">
-                <div class="gantt-header">
-                  <div class="gantt-headcell text-start">Actividad</div>
-                  <div class="gantt-headcell">Ene</div><div class="gantt-headcell">Feb</div><div class="gantt-headcell">Mar</div>
-                  <div class="gantt-headcell">Abr</div><div class="gantt-headcell">May</div><div class="gantt-headcell">Jun</div>
-                  <div class="gantt-headcell">Jul</div><div class="gantt-headcell">Ago</div><div class="gantt-headcell">Sep</div>
-                  <div class="gantt-headcell">Oct</div><div class="gantt-headcell">Nov</div><div class="gantt-headcell">Dic</div>
-                </div>
-              </div>
-              <div class="gantt-scroller gantt-body-wrap">
-                <div id="ganttBody"></div>
-              </div>
+          <div class="card"><div class="card-body">
+            <div class="gantt-header">
+              <div class="gantt-headcell text-start">Actividad</div>
+              <div class="gantt-headcell">Ene</div><div class="gantt-headcell">Feb</div><div class="gantt-headcell">Mar</div>
+              <div class="gantt-headcell">Abr</div><div class="gantt-headcell">May</div><div class="gantt-headcell">Jun</div>
+              <div class="gantt-headcell">Jul</div><div class="gantt-headcell">Ago</div><div class="gantt-headcell">Sep</div>
+              <div class="gantt-headcell">Oct</div><div class="gantt-headcell">Nov</div><div class="gantt-headcell">Dic</div>
             </div>
-          </div>
+            <div class="gantt-scroller"><div id="ganttBody"></div></div>
+          </div></div>
         </div>
 
-        <!-- Placeholders -->
-        <div id="productos" class="dashboard-section"><h2 class="mb-4">Productos</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.</div></div>
-        <div id="configuracion" class="dashboard-section"><h2 class="mb-4">Configuración</h2><div class="alert alert-info"><i class="fas fa-info-circle"></i> Esta sección permitirá configurar la conexión con Google Sheets.</div></div>
+        <div id="productos" class="dashboard-section"><h2 class="mb-4">Productos</h2><div class="alert alert-info">Próximamente</div></div>
+        <div id="configuracion" class="dashboard-section"><h2 class="mb-4">Configuración</h2><div class="alert alert-info">Próximamente</div></div>
       </div>
     </div>
   </div>
@@ -374,666 +280,397 @@
   <!-- JS Bootstrap -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Lógica del dashboard -->
+  <!-- Lógica -->
   <script>
-    // ===== Config =====
-    let componentChart, evolutionChart, indicadoresChart, componentesChart;
+    // ======= Config (AJUSTA AQUÍ) =======
+    const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68'; // <-- tu ID
+    const SHEET_GID = '0'; // <-- gid de DATOS_JERARQUIA
+
+    // ======= Estado global =======
+    let indicadoresChart, componentesChart, componentChart, evolutionChart;
     let datosGoogleSheets = { _rows: [] };
 
-    const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
-    const SHEET_GID = '0'; // <-- cambia si tu pestaña DATOS_JERARQUIA tiene otro gid
+    // ======= Utilidades =======
+    const getYear   = r => String(r.Anio_Gestion || '').trim();
+    const getComp   = r => String(r.Componente || '').trim();
+    const getIndic  = r => String(r.Indicador || '').trim();
+    const getMeta   = r => Number(r.Meta || 0);
+    const getAvance = r => Number(r.Avance || 0);
+    const getPctCumpl = r => { const n=(r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.'); return n?Number(n):null; };
+    const getEstado = r => String(r.Estado || '').trim();
 
-    // Acceso directo a columnas normalizadas
-    const getYear     = (r) => String(r.Anio_Gestion || '').trim();
-    const getComp     = (r) => String(r.Componente || '').trim();
-    const getIndic    = (r) => String(r.Indicador || '').trim();
-    const getMeta     = (r) => Number(r.Meta || 0);
-    const getAvance   = (r) => Number(r.Avance || 0);
-    const getPctCumpl = (r) => { const n=(r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.'); return n?Number(n):null; };
-    const getEstado   = (r) => String(r.Estado || '').trim();
+    function estadoWeight(e){ const v=(e||'').toLowerCase(); if(v.includes('complet')) return 2; if(v.includes('progreso')||v.includes('proceso')) return 1; if(v.includes('no')) return 0; return 0; }
+    function badgeEstado(e=''){
+      const v=e.toLowerCase();
+      if(v.includes('complet')) return '<span class="badge bg-success">Completado</span>';
+      if(v.includes('progreso')||v.includes('proceso')) return '<span class="badge bg-warning">En progreso</span>';
+      if(v.includes('no'))        return '<span class="badge bg-secondary">No iniciado</span>';
+      return `<span class="badge bg-light text-dark">${e||'—'}</span>`;
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
-      configurarNavegacion();
-      inicializarGraficos();
-
-      // Listeners UI
-      document.getElementById('btnRefresh').addEventListener('click', cargarDatosDesdeSheet);
-      document.getElementById('btnFiltrar').addEventListener('click', () => {
-        aplicarFiltros();
-        if (isIndicadoresActive()) renderIndicadoresChart();
-        if (isActividadesActive()) renderActividades();
-        if (isCronogramaActive()) renderCronograma();
-        if (isComponentesActive()) renderComponentes();
+    // Filas según filtros superiores
+    function filasFiltradas(){
+      const y=document.getElementById('yearFilter').value;
+      const c=document.getElementById('componenteFilter').value;
+      const e=document.getElementById('estadoFilter').value;
+      return (datosGoogleSheets._rows || []).filter(r=>{
+        const okY = (y==='todos') || getYear(r)===y;
+        const n = (getComp(r).match(/\d+/)||[''])[0];
+        const okC = (!c) || (n===c);
+        const t = getEstado(r).toLowerCase();
+        const okE = !e ||
+          (e==='no-iniciado' && t.includes('no iniciado')) ||
+          (e==='en-progreso' && (t.includes('en progreso')||t.includes('proceso'))) ||
+          (e==='completado' && t.includes('completado'));
+        return okY && okC && okE;
       });
-      document.getElementById('btnPDF').addEventListener('click', descargarPDF);
-      document.getElementById('btnExcel').addEventListener('click', descargarExcel);
-      document.getElementById('btnIndicadoresCSV')?.addEventListener('click', descargarIndicadoresCSV);
-      document.getElementById('btnActividadesCSV')?.addEventListener('click', descargarActividadesCSV);
-      document.getElementById('btnCronogramaCSV')?.addEventListener('click', descargarCronogramaCSV);
-      document.getElementById('btnComponentesCSV')?.addEventListener('click', descargarComponentesCSV);
-      document.getElementById('searchActividades')?.addEventListener('input', () => { if (isActividadesActive()) renderActividades(); });
+    }
 
-      // Carga inicial
-      cargarDatosDesdeSheet();
-    });
+    // Agregación por Indicador (consolida actividades/subactividades)
+    function aggregateByIndicator(rows){
+      const map = new Map();
+      rows.forEach(r=>{
+        const key = `${getYear(r)}|||${getComp(r)}|||${getIndic(r) || '(sin indicador)'}`;
+        const meta = getMeta(r)||0, av = getAvance(r)||0;
+        const p = getPctCumpl(r);
+        const w = estadoWeight(getEstado(r));
+        const o = map.get(key) || {Anio:getYear(r), Componente:getComp(r), Indicador:getIndic(r)||'(sin indicador)', Meta:0, Avance:0, PctVals:[], EstadoW:-1};
+        o.Meta += meta; o.Avance += av; if(p!=null) o.PctVals.push(Math.max(0,Math.min(100,p))); o.EstadoW = Math.max(o.EstadoW, w);
+        map.set(key, o);
+      });
+      return Array.from(map.values()).map(o=>{
+        const pct = (o.Meta>0) ? Math.round((o.Avance/o.Meta)*100) :
+                    (o.PctVals.length? Math.round(o.PctVals.reduce((a,b)=>a+b,0)/o.PctVals.length) : 0);
+        return { ...o, Pct: Math.max(0, Math.min(100, pct)) };
+      });
+    }
 
-    function isIndicadoresActive(){ return document.querySelector('.dashboard-section.active')?.id === 'indicadores'; }
-    function isActividadesActive(){ return document.querySelector('.dashboard-section.active')?.id === 'actividades'; }
-    function isCronogramaActive(){ return document.querySelector('.dashboard-section.active')?.id === 'calendario'; }
-    function isComponentesActive(){ return document.querySelector('.dashboard-section.active')?.id === 'componentes'; }
+    // ======= Arranque =======
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('currentDate').textContent =
+        new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
 
-    function configurarNavegacion(){
+      // Navegación
       document.querySelectorAll('.nav-link').forEach(link=>{
-        link.addEventListener('click',(e)=>{
+        link.addEventListener('click', e=>{
           e.preventDefault();
           document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
           link.classList.add('active');
           document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active'));
-          const sectionId = link.getAttribute('data-section');
-          document.getElementById(sectionId)?.classList.add('active');
+          document.getElementById(link.getAttribute('data-section'))?.classList.add('active');
 
-          if(sectionId === 'indicadores'){ renderIndicadoresChart(); }
-          if(sectionId === 'actividades'){ renderActividades(); }
-          if(sectionId === 'calendario'){ renderCronograma(); }
-          if(sectionId === 'componentes'){ renderComponentes(); }
+          const sec = link.getAttribute('data-section');
+          if (sec==='indicadores') renderIndicadoresChart();
+          if (sec==='componentes') renderComponentes();
+          if (sec==='actividades') renderActividades();
+          if (sec==='calendario')  renderCronograma();
         });
       });
-    }
 
-    function inicializarGraficos(){
+      // UI generales
+      document.getElementById('btnRefresh').addEventListener('click', cargarDatosDesdeSheet);
+      document.getElementById('btnFiltrar').addEventListener('click', ()=>{
+        document.getElementById('tituloAnioTabla').textContent =
+          'Año ' + (document.getElementById('yearFilter').value==='todos' ? '—' : document.getElementById('yearFilter').value);
+        renderTablaResumen(filasFiltradas());
+        actualizarDistribucionComponentes();
+        renderEvolucionChart();
+        renderIndicadoresChart();
+        renderComponentes();
+        renderActividades();
+        renderCronograma();
+      });
+
+      // Inicializa gráficos vacíos
       const c1 = document.getElementById('componentChart')?.getContext('2d');
-      if(c1){
-        componentChart = new Chart(c1,{
-          type:'doughnut',
-          data:{ labels:['Educación','Empresas','Medios','Gestión'], datasets:[{ data:[35,25,20,20], backgroundColor:['#4a3c8d','#28a745','#17a2b8','#6c757d'], borderWidth:0 }] },
-          options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
-        });
-      }
+      componentChart = new Chart(c1,{ type:'doughnut',
+        data:{ labels:[], datasets:[{ data:[], borderWidth:0 }] },
+        options:{ plugins:{ legend:{ position:'bottom'} } }
+      });
       const c2 = document.getElementById('evolutionChart')?.getContext('2d');
-      if(c2){
-        evolutionChart = new Chart(c2,{
-          type:'line',
-          data:{ labels:['2024','2025 (Actual)','2026 (Próx)','2027 (Estrat)'],
-            datasets:[
-              { label:'Metodologías Institucionalizadas', data:[3,2,0,0], borderColor:'#4a3c8d', backgroundColor:'rgba(74,60,141,0.1)', fill:true },
-              { label:'Productos Comunicacionales', data:[8,10,0,0], borderColor:'#e5438a', backgroundColor:'rgba(229,67,138,0.1)', fill:true }
-            ]},
-          options:{ responsive:true, scales:{ y:{ beginAtZero:true, title:{display:true,text:'Cantidad'} } } }
-        });
-      }
-    }
+      evolutionChart = new Chart(c2,{ type:'line',
+        data:{ labels:[], datasets:[] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+      });
 
-    // ========== Carga Google Sheets ==========
+      cargarDatosDesdeSheet();
+    });
+
+    // ======= Carga Google Sheet (CSV publicado) =======
     async function cargarDatosDesdeSheet(){
       mostrarLoading(true);
       try{
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${encodeURIComponent(SHEET_GID)}`;
-        const resp = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
-        if(!resp.ok) throw new Error('No se pudo leer Google Sheets');
-        const csvRaw = await resp.text();
-        const csv = csvRaw.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '');
-
+        const resp = await fetch(url, { headers:{'Cache-Control':'no-cache'} });
+        const csv = (await resp.text()).replace(/\r\n/g,'\n').replace(/^\uFEFF/,'');
         const parsed = Papa.parse(csv,{ header:true, skipEmptyLines:'greedy' });
-        const realErrors = (parsed.errors||[]).filter(e=>e.type!=='FieldMismatch');
-        if(realErrors.length){ console.warn('CSV parse issues (primeros 3):', realErrors.slice(0,3)); }
+        datosGoogleSheets._rows = parsed.data || [];
 
-        procesarFilas(parsed.data);
-        renderTabla(parsed.data);
-        actualizarKPIsyGraficos();
+        document.getElementById('tituloAnioTabla').textContent = 'Año ' + (document.getElementById('yearFilter').value || '2025');
+
+        // Render general
+        renderTablaResumen(datosGoogleSheets._rows);
+        actualizarDistribucionComponentes();
+        renderEvolucionChart();
+        renderIndicadoresChart();
+        renderComponentes();
+        renderActividades();
+        renderCronograma();
+        actualizarKPIsyResumen();
+
         document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
-
-        if(isIndicadoresActive()) renderIndicadoresChart();
-        if(isActividadesActive()) renderActividades();
-        if(isCronogramaActive()) renderCronograma();
-        if(isComponentesActive()) renderComponentes();
-      }catch(e){
-        console.error(e);
-        usarDatosEjemplo();
+      }catch(err){
+        console.error(err);
       }finally{
         mostrarLoading(false);
       }
     }
 
-    function procesarFilas(rows){
-      datosGoogleSheets._rows = rows;
-      const suma = (arr)=>arr.reduce((a,b)=>a+b,0);
-
-      // KPIs por texto
-      const metodologias = rows.filter(r=>getIndic(r).toLowerCase().includes('metodolog')).map(getAvance);
-      const instrumentos = rows.filter(r=>getIndic(r).toLowerCase().includes('instrument')).map(getAvance);
-      const sello        = rows.filter(r=>getIndic(r).toLowerCase().includes('sello')).map(getAvance);
-      const buenas       = rows.filter(r=>getIndic(r).toLowerCase().includes('buena')).map(getAvance);
-      const productos    = rows.filter(r=>getIndic(r).toLowerCase().includes('producto')).map(getAvance);
-
-      const porcentajes = rows.map(r=>{
-        const p=getPctCumpl(r);
-        if(p!=null && !Number.isNaN(p)) return Math.max(0,Math.min(100,Math.round(p)));
-        const a=getAvance(r), m=getMeta(r);
-        return m>0 ? Math.min(100, Math.round((a/m)*100)) : null;
-      }).filter(x=>x!==null);
-
-      datosGoogleSheets.metodologias    = suma(metodologias)||0;
-      datosGoogleSheets.instrumentos    = suma(instrumentos)||0;
-      datosGoogleSheets.sello           = suma(sello)||0;
-      datosGoogleSheets.buenasPracticas = suma(buenas)||0;
-      datosGoogleSheets.productos       = suma(productos)||0;
-      datosGoogleSheets.progresoGeneral = porcentajes.length? Math.round(suma(porcentajes)/porcentajes.length) : 0;
-
-      // Distribución por componente (para el donut del resumen)
-      const dist={C1:0,C2:0,C3:0,C4:0};
-      rows.forEach(r=>{
-        const c=getComp(r);
-        const n=(c.match(/\d+/)||[''])[0];
-        if(n && dist['C'+n]!=null) dist['C'+n]+=1;
-      });
-      datosGoogleSheets._dist = dist;
-    }
-
-    function renderTabla(rows){
-      const tbody=document.querySelector('#tablaDatos tbody');
-      if(!tbody) return;
+    // ======= Render: Tabla consolidada (por Indicador) =======
+    function renderTablaResumen(rows){
+      const tbody=document.querySelector('#tablaDatos tbody'); if(!tbody) return;
+      const rowsFiltro = filasFiltradas().length ? filasFiltradas() : rows;
+      const agg = aggregateByIndicator(rowsFiltro);
       tbody.innerHTML='';
-      rows.forEach(r=>{
-        const year=getYear(r);
-        const comp=getComp(r);
-        const indic=getIndic(r);
-        const meta=getMeta(r);
-        const avan=getAvance(r);
-        const p=getPctCumpl(r);
-        const perc = p!=null? Math.round(p) : (meta>0? Math.min(100, Math.round((avan/meta)*100)) : 0);
-        const estado=getEstado(r);
-        const compNum=(comp.match(/\d+/)||['?'])[0];
-
+      agg.forEach(o=>{
+        const compBadge = (o.Componente.match(/\d+/)||[''])[0] ? 'C'+(o.Componente.match(/\d+/)||[''])[0] : '';
+        const estadoLbl = ['No iniciado','En progreso','Completado'][Math.max(0,o.EstadoW)];
         const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${year||'—'}</td>
-          <td><span class="component-badge">${compNum? 'C'+compNum : 'C?'}</span> ${comp||''}</td>
-          <td>${indic||''}</td>
-          <td>${meta||''}</td>
-          <td>${avan||''}</td>
-          <td>
-            <div class="progress" style="height:10px;">
-              <div class="progress-bar" role="progressbar" style="width:${perc}%;" aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100">${perc}%</div>
-            </div>
-          </td>
-          <td>${badgeEstado(estado)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function actualizarKPIsyGraficos(){
-      document.getElementById('metodologiasInstitucionalizadas').textContent = `${datosGoogleSheets.metodologias}/5`;
-      document.getElementById('productosComunicacionales').textContent = `${datosGoogleSheets.productos}/38`;
-      document.getElementById('avanceProductos').textContent = `${Math.round((datosGoogleSheets.productos/38)*100)}% de avance`;
-
-      const barra=document.getElementById('progresoGeneral');
-      if(barra){ barra.style.width = `${datosGoogleSheets.progresoGeneral}%`; barra.setAttribute('aria-valuenow',datosGoogleSheets.progresoGeneral); }
-      const texto=document.getElementById('textoProgreso');
-      if(texto) texto.textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
-      const mini=document.getElementById('miniProgresoActual');
-      if(mini) mini.textContent = `${datosGoogleSheets.progresoGeneral}%`;
-
-      if(componentChart && datosGoogleSheets._dist){
-        const d=datosGoogleSheets._dist;
-        componentChart.data.datasets[0].data = [d.C1||0,d.C2||0,d.C3||0,d.C4||0];
-        componentChart.update();
-      }
-      if(evolutionChart) evolutionChart.update();
-    }
-
-    // ===== Filtros utilitarios =====
-    function filasFiltradas(rows){
-      const year = document.getElementById('yearFilter').value;
-      const componente = document.getElementById('componenteFilter').value; // "1".."4" o ""
-      const estado = document.getElementById('estadoFilter').value;
-
-      return rows.filter(r=>{
-        const okYear = (year==='todos') || getYear(r)===year;
-        const compText = getComp(r);
-        const compNum = (compText.match(/\d+/)||[''])[0];
-        const okComp = (!componente) || (compNum===componente);
-        const estText = getEstado(r).toLowerCase();
-        const okEstado = !estado ||
-          (estado==='no-iniciado' && estText.includes('no iniciado')) ||
-          (estado==='en-progreso' && (estText.includes('en progreso') || estText.includes('proceso'))) ||
-          (estado==='completado' && estText.includes('completado'));
-        return okYear && okComp && okEstado;
-      });
-    }
-
-    // ===== Indicadores: gráfico =====
-    function renderIndicadoresChart(){
-      const canvas = document.getElementById('indicadoresChart');
-      if(!canvas || !datosGoogleSheets._rows?.length) return;
-
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const byIndic = {};
-      rows.forEach(r=>{
-        const key = getIndic(r);
-        if(!key) return;
-        const meta = getMeta(r), av = getAvance(r);
-        const p = getPctCumpl(r) ?? (meta>0 ? (av/meta)*100 : null);
-        if(!byIndic[key]) byIndic[key] = { sumPct:0, count:0 };
-        if(p!=null && isFinite(p)) { byIndic[key].sumPct += Math.max(0, Math.min(100, p)); byIndic[key].count += 1; }
-      });
-
-      const labels = Object.keys(byIndic);
-      const data = labels.map(k => {
-        const {sumPct, count} = byIndic[k];
-        return count ? Math.round(sumPct/count) : 0;
-      });
-
-      const config = {
-        type: 'bar',
-        data: { labels, datasets: [{ label: '% Avance', data, borderWidth: 1 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, max: 100, title: { display: true, text: '% de avance' } },
-            x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }
-          },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx)=> `${ctx.parsed.y}%` } } }
-        }
-      };
-
-      if(indicadoresChart){ indicadoresChart.data=config.data; indicadoresChart.options=config.options; indicadoresChart.update(); }
-      else { indicadoresChart = new Chart(canvas.getContext('2d'), config); }
-    }
-
-    function descargarIndicadoresCSV(){
-      if(!datosGoogleSheets._rows?.length) return;
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const byIndic = {};
-      rows.forEach(r=>{
-        const key = getIndic(r);
-        if(!key) return;
-        const meta = getMeta(r), av = getAvance(r);
-        const p = getPctCumpl(r) ?? (meta>0 ? (av/meta)*100 : null);
-        if(!byIndic[key]) byIndic[key] = { sumPct:0, count:0 };
-        if(p!=null && isFinite(p)) { byIndic[key].sumPct += p; byIndic[key].count += 1; }
-      });
-      const rowsCSV = [['Indicador','Porcentaje_Avance']];
-      Object.keys(byIndic).forEach(k=>{
-        const {sumPct, count} = byIndic[k];
-        const val = count ? Math.round(sumPct/count) : 0;
-        rowsCSV.push([k, `${val}%`]);
-      });
-      const ws = XLSX.utils.aoa_to_sheet(rowsCSV);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Indicadores');
-      XLSX.writeFile(wb, 'indicadores_avance.csv');
-    }
-
-    // ===== Actividades =====
-    function renderActividades(){
-      const tbody = document.getElementById('tbodyActividades');
-      if(!tbody || !datosGoogleSheets._rows?.length) return;
-
-      const search = (document.getElementById('searchActividades')?.value || '').toLowerCase();
-      const rows = filasFiltradas(datosGoogleSheets._rows).filter(r=>{
-        if(!search) return true;
-        const blob = [ getIndic(r), r.Actividad_Principal, r.Subactividad, r.Tarea_Especifica, r.Responsable, r.Mes, getEstado(r) ]
-          .map(x => (x||'').toString().toLowerCase()).join(' ');
-        return blob.includes(search);
-      });
-
-      rows.sort((a,b)=>
-        (a.Actividad_Principal||'').localeCompare(b.Actividad_Principal||'') ||
-        (a.Subactividad||'').localeCompare(b.Subactividad||'') ||
-        (a.Tarea_Especifica||'').localeCompare(b.Tarea_Especifica||'')
-      );
-
-      tbody.innerHTML = '';
-      let total=0, comp=0, prog=0, noini=0;
-
-      rows.forEach(r=>{
-        total++;
-        const estado = getEstado(r).toLowerCase();
-        if (estado.includes('complet')) comp++;
-        else if (estado.includes('progreso') || estado.includes('proceso')) prog++;
-        else if (estado.includes('no')) noini++;
-
-        const meta=getMeta(r), av=getAvance(r);
-        const perc = (getPctCumpl(r) ?? (meta>0 ? Math.min(100, Math.round((av/meta)*100)) : 0));
-
-        const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${getIndic(r) || ''}</td>
-          <td>${r.Actividad_Principal || ''}</td>
-          <td>${r.Subactividad || ''}</td>
-          <td>${r.Tarea_Especifica || ''}</td>
-          <td>${r.Responsable || ''}</td>
-          <td>${r.Mes || ''}</td>
-          <td>
-            <div class="progress" style="height:10px;">
-              <div class="progress-bar" role="progressbar" style="width:${perc}%;" aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100">${perc}%</div>
-            </div>
-          </td>
-          <td>${badgeEstado(getEstado(r))}</td>
-        `;
+          <td>${o.Anio}</td>
+          <td><span class="component-badge">${compBadge}</span> ${o.Componente}</td>
+          <td>${o.Indicador}</td>
+          <td>${o.Meta||0}</td>
+          <td>${o.Avance||0}</td>
+          <td><div class="progress" style="height:10px;"><div class="progress-bar" style="width:${o.Pct}%;">${o.Pct}%</div></div></td>
+          <td>${estadoLbl}</td>`;
         tbody.appendChild(tr);
       });
-
-      document.getElementById('actTotal').textContent = total;
-      document.getElementById('actProg').textContent  = prog;
-      document.getElementById('actComp').textContent  = comp;
-      document.getElementById('actNoIni').textContent = noini;
     }
 
-    function descargarActividadesCSV(){
-      if(!datosGoogleSheets._rows?.length) return;
-      const search = (document.getElementById('searchActividades')?.value || '').toLowerCase();
-      const rows = filasFiltradas(datosGoogleSheets._rows).filter(r=>{
-        if(!search) return true;
-        const blob = [ getIndic(r), r.Actividad_Principal, r.Subactividad, r.Tarea_Especifica, r.Responsable, r.Mes, getEstado(r) ]
-          .map(x => (x||'').toString().toLowerCase()).join(' ');
-        return blob.includes(search);
-      });
+    // ======= Render: Indicadores (barras % por indicador) =======
+    function renderIndicadoresChart(){
+      const canvas = document.getElementById('indicadoresChart'); if(!canvas) return;
+      const agg = aggregateByIndicator(filasFiltradas());
+      const labels = agg.map(x=>x.Indicador);
+      const data   = agg.map(x=>x.Pct);
+      const cfg = { type:'bar', data:{ labels, datasets:[{ label:'% Avance', data }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ display:false } } } };
+      if(indicadoresChart){ indicadoresChart.data = cfg.data; indicadoresChart.update(); } else { indicadoresChart = new Chart(canvas, cfg); }
+    }
 
-      const out = [['Indicador','Actividad','Subactividad','Tarea','Responsable','Mes','Porcentaje_Avance','Estado']];
+    // ======= Render: Distribución por Componente (dinámica) =======
+    function actualizarDistribucionComponentes(){
+      if(!componentChart) return;
+      const year = document.getElementById('yearFilter').value;
+      const rows = (datosGoogleSheets._rows||[]).filter(r => year==='todos' || getYear(r)===year);
+      const agg  = aggregateByIndicator(rows);
+      const byComp = {};
+      agg.forEach(o=>{
+        if(!byComp[o.Componente]) byComp[o.Componente] = {av:0};
+        byComp[o.Componente].av   += (o.Avance||0);
+      });
+      const labels = Object.keys(byComp).sort();
+      const avanceShare = labels.map(c=> byComp[c].av );
+      componentChart.data.labels = labels.map(l=> l.replace(/^Componente\s*/i, 'C'));
+      componentChart.data.datasets[0].data = avanceShare;
+      componentChart.update();
+    }
+
+    // ======= Render: Evolución (2025–2027) Meta vs Avance =======
+    function renderEvolucionChart(){
+      if(!evolutionChart) return;
+      const rows = datosGoogleSheets._rows || [];
+      const targets = ['2025','2026','2027'];
+      const byYear = {}; targets.forEach(y=> byYear[y]={metod:{meta:0,av:0}, prod:{meta:0,av:0}});
+
       rows.forEach(r=>{
-        const meta=getMeta(r), av=getAvance(r);
-        const p = (getPctCumpl(r) ?? (meta>0 ? (av/meta)*100 : 0));
-        out.push([
-          getIndic(r) || '', r.Actividad_Principal || '', r.Subactividad || '', r.Tarea_Especifica || '',
-          r.Responsable || '', r.Mes || '', `${Math.round(Math.max(0,Math.min(100,p)))}%`, getEstado(r) || ''
-        ]);
+        const y = getYear(r); if(!byYear[y]) return;
+        const ind = getIndic(r).toLowerCase();
+        const meta = getMeta(r)||0, av = getAvance(r)||0;
+        if(ind.includes('metodolog')) { byYear[y].metod.meta += meta; byYear[y].metod.av += av; }
+        if(ind.includes('producto'))  { byYear[y].prod.meta  += meta; byYear[y].prod.av  += av; }
       });
 
-      const ws = XLSX.utils.aoa_to_sheet(out);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Actividades');
-      XLSX.writeFile(wb, 'actividades_filtradas.csv');
+      const labels = targets.map(y => y==='2025'?'2025 (Actual)': y==='2026'?'2026 (Próx)': '2027 (Estrat)');
+      const mAv = targets.map(y=>byYear[y].metod.av);
+      const mMe = targets.map(y=>byYear[y].metod.meta);
+      const pAv = targets.map(y=>byYear[y].prod.av);
+      const pMe = targets.map(y=>byYear[y].prod.meta);
+
+      evolutionChart.data.labels = labels;
+      evolutionChart.data.datasets = [
+        { label:'Metodologías - Avance', data:mAv, fill:false, tension:.3, borderColor:'#4a3c8d' },
+        { label:'Metodologías - Meta',   data:mMe, fill:false, tension:.3, borderDash:[6,6], borderColor:'#4a3c8d' },
+        { label:'Productos - Avance',    data:pAv, fill:false, tension:.3, borderColor:'#e5438a' },
+        { label:'Productos - Meta',      data:pMe, fill:false, tension:.3, borderDash:[6,6], borderColor:'#e5438a' },
+      ];
+      evolutionChart.update();
     }
 
-    // ===== Cronograma (Mini-Gantt) =====
-    const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    function mesToIndex(val){
-      if(!val && val!==0) return null;
-      let s = String(val).trim().toLowerCase().replace(/\./g,'');
-      const map = {'ene':1,'enero':1,'feb':2,'febrero':2,'mar':3,'marzo':3,'abr':4,'abril':4,'may':5,'mayo':5,'jun':6,'junio':6,'jul':7,'julio':7,'ago':8,'agosto':8,'sep':9,'septiembre':9,'setiembre':9,'sept':9,'set':9,'oct':10,'octubre':10,'nov':11,'noviembre':11,'dic':12,'diciembre':12};
-      if(map[s]) return map[s];
-      const n = parseInt(s,10);
-      return (n>=1 && n<=12) ? n : null;
-    }
-    function estadoWeight(e){ const v=(e||'').toLowerCase(); if(v.includes('complet')) return 2; if(v.includes('progreso')||v.includes('proceso')) return 1; if(v.includes('no')) return 0; return 0; }
-    function classByWeight(w){ return (w===2)?'gantt-cell--done' : (w===1)?'gantt-cell--prog' : 'gantt-cell--todo'; }
-
-    function renderCronograma(){
-      const host = document.getElementById('ganttBody');
-      if(!host || !datosGoogleSheets._rows?.length) return;
-
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const groups = {};
-      rows.forEach(r=>{
-        const act = String(r.Actividad_Principal||'').trim();
-        if(!act) return;
-        const mIdx = mesToIndex(r.Mes);
-        if(!mIdx) return;
-        const w = estadoWeight(getEstado(r));
-        if(!groups[act]) groups[act] = { months: {} };
-        const actual = groups[act].months[mIdx] ?? -1;
-        groups[act].months[mIdx] = Math.max(actual, w);
-      });
-
-      const acts = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-      host.innerHTML = '';
-      acts.forEach(act=>{
-        const row = document.createElement('div'); row.className = 'gantt-row';
-        const label = document.createElement('div'); label.className = 'gantt-activity'; label.textContent = act; row.appendChild(label);
-        for(let i=1;i<=12;i++){
-          const cell = document.createElement('div'); cell.className = `gantt-cell ${classByWeight(groups[act].months[i] ?? -1)}`; cell.title = `${act} - ${MONTHS[i-1]}`; cell.innerHTML = '&nbsp;'; row.appendChild(cell);
-        }
-        host.appendChild(row);
-      });
-    }
-
-    function descargarCronogramaCSV(){
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const groups = {};
-      rows.forEach(r=>{
-        const act = String(r.Actividad_Principal||'').trim();
-        if(!act) return;
-        const mIdx = mesToIndex(r.Mes);
-        if(!mIdx) return;
-        const w = estadoWeight(getEstado(r));
-        if(!groups[act]) groups[act] = { months: {} };
-        const actual = groups[act].months[mIdx] ?? -1;
-        groups[act].months[mIdx] = Math.max(actual, w);
-      });
-
-      const out = [['Actividad_Principal', ...MONTHS]];
-      const labelByW = ['No iniciado','En progreso','Completado'];
-      Object.keys(groups).sort().forEach(act=>{
-        const row = [act];
-        for(let i=1;i<=12;i++){
-          const w = groups[act].months[i];
-          row.push(w!=null && w>=0 ? labelByW[w] : '');
-        }
-        out.push(row);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(out);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
-      XLSX.writeFile(wb, 'cronograma.csv');
-    }
-
-    // ===== Componentes (nuevo) =====
+    // ======= Render: Componentes (tarjetas, barra horizontal, tabla agregada) =======
     function renderComponentes(){
-      if(!datosGoogleSheets._rows?.length) return;
-
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const compAgg = {}; // key: C1..C4
+      const rows = filasFiltradas(); if(!rows.length) return;
+      const compAgg = {};
       rows.forEach(r=>{
-        const compText = getComp(r);
-        const num = (compText.match(/\d+/)||[''])[0] || '?';
-        const key = 'C'+num;
-        if(!compAgg[key]) compAgg[key] = { label: compText || key, rows:[], indicators:new Set(), pcts:[] };
-        compAgg[key].rows.push(r);
-        compAgg[key].indicators.add(getIndic(r));
-        const meta=getMeta(r), av=getAvance(r);
-        const p = getPctCumpl(r) ?? (meta>0 ? (av/meta)*100 : null);
-        if(p!=null && isFinite(p)) compAgg[key].pcts.push(Math.max(0,Math.min(100,p)));
+        const comp = getComp(r); if(!comp) return;
+        const p = getPctCumpl(r) ?? (getMeta(r)>0 ? (getAvance(r)/getMeta(r))*100 : null);
+        if(!compAgg[comp]) compAgg[comp] = { rows:0, pcts:[], indSet:new Set() };
+        compAgg[comp].rows++; compAgg[comp].indSet.add(getIndic(r)); if(p!=null) compAgg[comp].pcts.push(Math.max(0,Math.min(100,p)));
       });
 
-      // ---- Tarjetas
-      const cardsHost = document.getElementById('compCards');
-      cardsHost.innerHTML='';
-      Object.keys(compAgg).sort().forEach(key=>{
-        const it = compAgg[key];
-        const avg = it.pcts.length ? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length) : 0;
-        const col = document.createElement('div'); col.className='col-md-3';
-        col.innerHTML = `
-          <div class="card comp-card">
-            <div class="card-body">
-              <h6 class="text-muted">${it.label || key}</h6>
-              <div class="big mb-1">${avg}%</div>
-              <small>Indicadores: ${it.indicators.size || 0} • Registros: ${it.rows.length}</small>
-            </div>
-          </div>
-        `;
-        cardsHost.appendChild(col);
+      // tarjetas
+      const host = document.getElementById('compCards'); host.innerHTML='';
+      Object.keys(compAgg).sort().forEach(c=>{
+        const it=compAgg[c], avg = it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length) : 0;
+        const col=document.createElement('div'); col.className='col-md-3';
+        col.innerHTML=`<div class="card comp-card"><div class="card-body"><h6 class="text-muted">${c}</h6><div class="fs-2 fw-bold">${avg}%</div><small>Indicadores: ${it.indSet.size} • Registros: ${it.rows}</small></div></div>`;
+        host.appendChild(col);
       });
 
-      // ---- Gráfico (avance promedio por componente)
+      // gráfico
       const labels = Object.keys(compAgg).sort();
-      const data = labels.map(k=>{
-        const it=compAgg[k]; return it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length) : 0;
-      });
-      const ctx = document.getElementById('componentesAvanceChart')?.getContext('2d');
-      if(ctx){
-        const cfg = {
-          type:'bar',
-          data:{ labels: labels.map(k=>compAgg[k].label || k), datasets:[{label:'% promedio', data, borderWidth:1}] },
-          options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            scales:{ x:{ beginAtZero:true, max:100, title:{display:true, text:'% avance'} } },
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>`${c.parsed.x}%` } } }
-          }
-        };
-        if(componentesChart){ componentesChart.data=cfg.data; componentesChart.options=cfg.options; componentesChart.update(); }
-        else { componentesChart = new Chart(ctx, cfg); }
-      }
+      const data   = labels.map(c=>{ const it=compAgg[c]; return it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length):0; });
+      const ctx = document.getElementById('componentesAvanceChart').getContext('2d');
+      const cfg = { type:'bar', data:{labels, datasets:[{label:'% promedio', data}]}, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true,max:100}} } };
+      if(componentesChart){ componentesChart.data=cfg.data; componentesChart.update(); } else { componentesChart = new Chart(ctx,cfg); }
 
-      // ---- Tabla de indicadores agregados (Σ meta/avance)
-      const byCompIndic = {}; // key comp -> indic -> {metaSum,avanceSum,pcts[], estadoMax}
+      // tabla agregada
+      const tbody = document.getElementById('tbodyCompIndicadores'); tbody.innerHTML='';
+      const byCompIndic = {};
       rows.forEach(r=>{
-        const compText = getComp(r);
-        const num = (compText.match(/\d+/)||[''])[0] || '?';
-        const cKey = 'C'+num;
-        const indic = getIndic(r) || '(sin nombre)';
-        if(!byCompIndic[cKey]) byCompIndic[cKey] = {};
-        if(!byCompIndic[cKey][indic]) byCompIndic[cKey][indic] = { meta:0, avan:0, pcts:[], estadoMax:-1, label:compText };
-        byCompIndic[cKey][indic].meta += getMeta(r) || 0;
-        byCompIndic[cKey][indic].avan += getAvance(r) || 0;
-        const p = getPctCumpl(r);
-        if(p!=null && isFinite(p)) byCompIndic[cKey][indic].pcts.push(Math.max(0,Math.min(100,p)));
-        byCompIndic[cKey][indic].estadoMax = Math.max(byCompIndic[cKey][indic].estadoMax, estadoWeight(getEstado(r)));
+        const c = getComp(r), i = getIndic(r)||'(sin nombre)';
+        if(!byCompIndic[c]) byCompIndic[c]={}; if(!byCompIndic[c][i]) byCompIndic[c][i]={meta:0,av:0,pcts:[],estado:-1};
+        byCompIndic[c][i].meta += getMeta(r)||0; byCompIndic[c][i].av += getAvance(r)||0;
+        const p=getPctCumpl(r); if(p!=null) byCompIndic[c][i].pcts.push(p);
+        byCompIndic[c][i].estado = Math.max(byCompIndic[c][i].estado, estadoWeight(getEstado(r)));
       });
-
-      const tbody = document.getElementById('tbodyCompIndicadores');
-      tbody.innerHTML='';
-      const estadoLbl = ['No iniciado','En progreso','Completado'];
-      Object.keys(byCompIndic).sort().forEach(cKey=>{
-        const compName = compAgg[cKey]?.label || cKey;
-        Object.keys(byCompIndic[cKey]).sort().forEach(ind=>{
-          const it = byCompIndic[cKey][ind];
-          const pctCalc = it.meta>0 ? Math.round((it.avan/it.meta)*100) : (it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length):0);
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${compName}</td>
-            <td>${ind}</td>
-            <td>${it.meta}</td>
-            <td>${it.avan}</td>
-            <td>${Math.max(0,Math.min(100,pctCalc))}%</td>
-            <td>${estadoLbl[Math.max(0,it.estadoMax)]}</td>
-          `;
+      const estadoLbl=['No iniciado','En progreso','Completado'];
+      Object.keys(byCompIndic).sort().forEach(c=>{
+        Object.keys(byCompIndic[c]).sort().forEach(i=>{
+          const it=byCompIndic[c][i];
+          const pct = it.meta>0 ? Math.round((it.av/it.meta)*100) : (it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length):0);
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${c}</td><td>${i}</td><td>${it.meta}</td><td>${it.av}</td><td>${Math.max(0,Math.min(100,pct))}%</td><td>${estadoLbl[Math.max(0,it.estado)]}</td>`;
           tbody.appendChild(tr);
         });
       });
     }
 
-    function descargarComponentesCSV(){
-      if(!datosGoogleSheets._rows?.length) return;
-      const rows = filasFiltradas(datosGoogleSheets._rows);
-      const agg = {};
+    // ======= Render: Actividades (detalle) =======
+    function renderActividades(){
+      const tbody=document.getElementById('tbodyActividades'); if(!tbody) return;
+      const rows = filasFiltradas(); tbody.innerHTML='';
       rows.forEach(r=>{
-        const compText = getComp(r);
-        const num = (compText.match(/\d+/)||[''])[0] || '?';
-        const cKey='C'+num;
-        const indic = getIndic(r) || '(sin nombre)';
-        if(!agg[cKey]) agg[cKey]={ label:compText, indic:{} };
-        if(!agg[cKey].indic[indic]) agg[cKey].indic[indic]={ meta:0, avan:0, pcts:[], estadoMax:-1 };
-        agg[cKey].indic[indic].meta += getMeta(r)||0;
-        agg[cKey].indic[indic].avan += getAvance(r)||0;
-        const p = getPctCumpl(r); if(p!=null && isFinite(p)) agg[cKey].indic[indic].pcts.push(p);
-        agg[cKey].indic[indic].estadoMax = Math.max(agg[cKey].indic[indic].estadoMax, estadoWeight(getEstado(r)));
+        const meta=getMeta(r), av=getAvance(r);
+        const p=getPctCumpl(r); const perc = p!=null? Math.round(p) : (meta>0? Math.round((av/meta)*100):0);
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${getIndic(r)}</td><td>${r.Actividad_Principal||''}</td><td>${r.Subactividad||''}</td><td>${r.Tarea_Especifica||''}</td><td>${r.Responsable||''}</td><td>${r.Mes||''}</td><td><div class="progress" style="height:10px;"><div class="progress-bar" style="width:${perc}%;">${perc}%</div></div></td><td>${badgeEstado(getEstado(r))}</td>`;
+        tbody.appendChild(tr);
       });
+    }
 
-      const out = [['Componente','Indicador','Meta_Sum','Avance_Sum','Porcentaje','Estado_dominante']];
-      const estadoLbl = ['No iniciado','En progreso','Completado'];
-      Object.keys(agg).sort().forEach(cKey=>{
-        const compName = agg[cKey].label || cKey;
-        Object.keys(agg[cKey].indic).sort().forEach(ind=>{
-          const it=agg[cKey].indic[ind];
-          const pct = it.meta>0 ? Math.round((it.avan/it.meta)*100) : (it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length):0);
-          out.push([compName, ind, it.meta, it.avan, `${Math.max(0,Math.min(100,pct))}%`, estadoLbl[Math.max(0,it.estadoMax)]]);
+    // ======= Cronograma (mini-Gantt por Mes x Actividad_Principal) =======
+    const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    function mesToIndex(val){ if(!val && val!==0) return null; let s=String(val).trim().toLowerCase().replace(/\./g,''); const map={'ene':1,'enero':1,'feb':2,'febrero':2,'mar':3,'marzo':3,'abr':4,'abril':4,'may':5,'mayo':5,'jun':6,'junio':6,'jul':7,'julio':7,'ago':8,'agosto':8,'sep':9,'septiembre':9,'setiembre':9,'sept':9,'set':9,'oct':10,'octubre':10,'nov':11,'noviembre':11,'dic':12,'diciembre':12}; if(map[s]) return map[s]; const n=parseInt(s,10); return (n>=1&&n<=12)?n:null; }
+    function classByWeight(w){ return (w===2)?'gantt-cell--done' : (w===1)?'gantt-cell--prog' : 'gantt-cell--todo'; }
+
+    function renderCronograma(){
+      const host=document.getElementById('ganttBody'); if(!host) return;
+      const rows = filasFiltradas();
+      const groups={};
+      rows.forEach(r=>{
+        const act=String(r.Actividad_Principal||'').trim(); if(!act) return;
+        const m=mesToIndex(r.Mes); if(!m) return;
+        const w=estadoWeight(getEstado(r));
+        if(!groups[act]) groups[act]={}; groups[act][m]=Math.max(groups[act][m]??-1, w);
+      });
+      host.innerHTML='';
+      Object.keys(groups).sort().forEach(act=>{
+        const row=document.createElement('div'); row.className='gantt-row';
+        const label=document.createElement('div'); label.className='gantt-activity'; label.textContent=act; row.appendChild(label);
+        for(let i=1;i<=12;i++){ const cell=document.createElement('div'); cell.className=`gantt-cell ${classByWeight(groups[act][i]??-1)}`; row.appendChild(cell); }
+        host.appendChild(row);
+      });
+    }
+
+    // ======= KPIs y progreso general =======
+    function actualizarKPIsyResumen(){
+      const rows = datosGoogleSheets._rows;
+      // Promedio simple de % por indicador (consolidado)
+      const agg = aggregateByIndicator(rows);
+      const pcts = agg.map(x=>x.Pct).filter(x=>x!=null);
+      const prom = pcts.length? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
+
+      document.getElementById('progresoGeneral').style.width = prom+'%';
+      document.getElementById('textoProgreso').textContent = `Progreso general: ${prom}%`;
+
+      // Pequeños indicadores (estimados a partir de agregación por palabras)
+      const metas = agg.filter(x=>x.Indicador.toLowerCase().includes('metodolog'));
+      const prods = agg.filter(x=>x.Indicador.toLowerCase().includes('producto'));
+      const sumaAvMet = metas.reduce((s,x)=>s+(x.Avance||0),0);
+      const sumaAvPro = prods.reduce((s,x)=>s+(x.Avance||0),0);
+
+      document.getElementById('metodologiasInstitucionalizadas').textContent = `${sumaAvMet}/5`;
+      document.getElementById('productosComunicacionales').textContent = `${sumaAvPro}/38`;
+      document.getElementById('avanceProductos').textContent = `${Math.round((sumaAvPro/38)*100)}% de avance`;
+
+      // Tarjetas de comparación por año (2025–2027)
+      const years = ['2025','2026','2027'];
+      const byYear = {};
+      years.forEach(y=> byYear[y] = []);
+      agg.forEach(x=>{ if(byYear[x.Anio]) byYear[x.Anio].push(x.Pct); });
+      const avg = y => (byYear[y].length? Math.round(byYear[y].reduce((a,b)=>a+b,0)/byYear[y].length) : 0);
+      document.getElementById('miniProgreso2025').textContent = `${avg('2025')}%`;
+      document.getElementById('miniProgreso2026').textContent = `${avg('2026')}%`;
+      document.getElementById('miniProgreso2027').textContent = `${avg('2027')}%`;
+      const all = pcts.length? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : 0;
+      document.getElementById('miniProgresoTotal').textContent = `${all}%`;
+    }
+
+    // ======= Exportaciones simples =======
+    document.getElementById('btnExcel')?.addEventListener('click', ()=>{
+      const wb = XLSX.utils.book_new();
+      // Usa la tabla consolidada
+      const rows = [];
+      document.querySelectorAll('#tablaDatos tbody tr').forEach(tr=>{
+        const tds = tr.querySelectorAll('td');
+        rows.push({
+          Año: tds[0].textContent.trim(),
+          Componente: tds[1].textContent.trim(),
+          Indicador: tds[2].textContent.trim(),
+          Meta: tds[3].textContent.trim(),
+          Avance: tds[4].textContent.trim(),
+          Porcentaje: tds[5].innerText.trim(),
+          Estado: tds[6].textContent.trim()
         });
       });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
+      XLSX.writeFile(wb, `reporte-proigualdad-${new Date().toISOString().slice(0,10)}.xlsx`);
+    });
 
-      const ws = XLSX.utils.aoa_to_sheet(out);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Componentes');
-      XLSX.writeFile(wb, 'componentes.csv');
-    }
-
-    // ===== Utilidades comunes =====
-    function badgeEstado(e=''){
-      const v=e.toLowerCase();
-      if(v.includes('complet')) return '<span class="badge bg-success">Completado</span>';
-      if(v.includes('progreso')||v.includes('proceso')) return '<span class="badge bg-warning">En progreso</span>';
-      if(v.includes('no')) return '<span class="badge bg-secondary">No iniciado</span>';
-      return `<span class="badge bg-light text-dark">${e||'—'}</span>`;
-    }
-    function mostrarLoading(mostrar){
-      const overlay=document.getElementById('loadingOverlay');
-      if(overlay) overlay.style.display = mostrar ? 'flex':'none';
-    }
-
-    // ===== Filtros UI (solo afectan la tabla del Resumen; el resto usa filasFiltradas) =====
-    function aplicarFiltros(){
-      const year=document.getElementById('yearFilter').value;
-      const componente=document.getElementById('componenteFilter').value;
-      const estado=document.getElementById('estadoFilter').value;
-
-      const tbody=document.querySelector('#tablaDatos tbody');
-      if(!tbody) return;
-      tbody.querySelectorAll('tr').forEach(tr=>{
-        const tds=tr.querySelectorAll('td');
-        const okYear=(year==='todos') || (tds[0]?.textContent.trim()===year);
-        const okComp=(!componente) || (tds[1]?.textContent.includes(`C${componente}`));
-        const estText=tds[6]?.textContent.toLowerCase()||'';
-        const okEstado=!estado ||
-          (estado==='no-iniciado' && estText.includes('no iniciado')) ||
-          (estado==='en-progreso' && estText.includes('en progreso')) ||
-          (estado==='completado' && estText.includes('completado'));
-        tr.style.display = (okYear && okComp && okEstado) ? '' : 'none';
+    document.getElementById('btnPDF')?.addEventListener('click', ()=>{
+      const doc = new jspdf.jsPDF('p','pt','a4');
+      doc.setFontSize(16);
+      doc.text('Reporte ProIgualdad (Consolidado por Indicador)', 40, 40);
+      doc.setFontSize(10);
+      doc.text(new Date().toLocaleString('es-ES'), 40, 58);
+      const rows = [];
+      document.querySelectorAll('#tablaDatos tbody tr').forEach(tr=>{
+        const tds = tr.querySelectorAll('td');
+        rows.push([tds[0].textContent.trim(), tds[1].textContent.trim(), tds[2].textContent.trim(), tds[3].textContent.trim(), tds[4].textContent.trim(), tds[5].innerText.trim(), tds[6].textContent.trim()]);
       });
-    }
+      doc.autoTable({
+        head: [['Año','Componente','Indicador','Meta','Avance','%','Estado']],
+        body: rows,
+        startY: 70,
+        styles: { fontSize: 8 }
+      });
+      doc.save(`reporte-proigualdad-${new Date().toISOString().slice(0,10)}.pdf`);
+    });
 
-    // ===== Exportar generales =====
-    function descargarPDF(){
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const year = document.getElementById('yearFilter').value;
-
-      doc.setFontSize(20);
-      doc.text(`Reporte ProIgualdad - Año ${year}`, 105, 15, { align:'center' });
-      doc.setFontSize(12);
-      doc.text("Fecha: " + new Date().toLocaleDateString(), 105, 22, { align:'center' });
-
-      doc.setFontSize(14); doc.text("Objetivo General:", 20, 40);
-      doc.setFontSize(10);
-      const objetivoText = "El aporte de los actores clave en los sectores educación, empresas y medios de comunicación para el fomento de la igualdad de género y los derechos LGBTIA está fortalecido.";
-      doc.text(objetivoText, 20, 50, { maxWidth: 170 });
-
-      doc.setFontSize(14); doc.text("Avances por Componente:", 20, 80);
-      doc.setFontSize(10);
-      doc.text(`• Educación: ${datosGoogleSheets.metodologias}/5 metodologías institucionalizadas`, 20, 90);
-      doc.text(`• Empresas: ${datosGoogleSheets.buenasPracticas}/5 buenas prácticas compartidas`, 20, 100);
-      doc.text(`• Medios: ${datosGoogleSheets.productos}/38 productos comunicacionales`, 20, 110);
-
-      doc.save(`reporte-proigualdad-${year}.pdf`);
-    }
-
-    function descargarExcel(){
-      const year = document.getElementById('yearFilter').value;
-      const wb = XLSX.utils.book_new();
-      const datos = [
-        ['Indicador','Meta','Actual','Progreso'],
-        ['Metodologías educativas institucionalizadas', 5, datosGoogleSheets.metodologias, `${Math.round((datosGoogleSheets.metodologias/5)*100)}%`],
-        ['Instrumentos de capacitación piloteados',     6, datosGoogleSheets.instrumentos, `${Math.round((datosGoogleSheets.instrumentos/6)*100)}%`],
-        ['Instrumento de sello ampliado',               1, datosGoogleSheets.sello,          datosGoogleSheets.sello? '100%':'0%'],
-        ['Buenas prácticas compartidas',                5, datosGoogleSheets.buenasPracticas,`${Math.round((datosGoogleSheets.buenasPracticas/5)*100)}%`],
-        ['Productos comunicacionales',                 38, datosGoogleSheets.productos,      `${Math.round((datosGoogleSheets.productos/38)*100)}%`]
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(datos);
-      XLSX.utils.book_append_sheet(wb, ws, `Reporte ${year}`);
-      XLSX.writeFile(wb, `reporte-proigualdad-${year}.xlsx`);
-    }
-
-    // Fallback si la sheet no está publicada
-    function usarDatosEjemplo(){
-      datosGoogleSheets = { metodologias:2, instrumentos:3, sello:1, buenasPracticas:2, productos:10, progresoGeneral:35, _rows:[] };
-      document.getElementById('lastUpdate').textContent = 'Última actualización: Usando datos de ejemplo';
-      actualizarKPIsyGraficos();
-      if(isIndicadoresActive()) renderIndicadoresChart();
-      if(isActividadesActive()) renderActividades();
-      if(isCronogramaActive()) renderCronograma();
-      if(isComponentesActive()) renderComponentes();
-    }
+    function mostrarLoading(x){ const el=document.getElementById('loadingOverlay'); if(el) el.style.display = x? 'flex':'none'; }
   </script>
 </body>
 </html>
