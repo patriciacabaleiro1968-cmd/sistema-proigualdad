@@ -15,7 +15,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- Parser CSV robusto -->
+  <!-- Parser CSV -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
@@ -30,12 +30,8 @@
     .card:hover{ transform:translateY(-5px);}
     .progress{ height:10px; border-radius:5px;}
     .kpi-card{ border-left:4px solid var(--primary);}
-    .indicator-card{ border-top:3px solid var(--secondary);}
-    .activity-card{ border-top:3px solid var(--accent);}
     .btn-primary{ background:var(--primary); border-color:var(--primary);}
     .btn-primary:hover{ background:#3a2c70; border-color:#3a2c70;}
-    .badge-femenino{ background:rgba(229,67,138,.2); color:#c53d74;}
-    .badge-masculino{ background:rgba(65,196,179,.2); color:#2a9c8c;}
     .dashboard-section{ display:none; }
     .dashboard-section.active{ display:block; }
     .filter-section{ background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.05);}
@@ -138,12 +134,12 @@
         <div id="resumen" class="dashboard-section active">
           <h2 class="mb-4">Resumen del Proyecto ProIgualdad</h2>
 
-          <!-- Comparación entre años -->
+          <!-- Comparación entre años (estático de referencia visual) -->
           <div class="year-comparison">
             <h5><i class="fas fa-calendar-alt"></i> Comparación entre Años</h5>
             <div class="row">
               <div class="col-md-3 text-center"><h3>2024</h3><h4>65%</h4><small>Histórico</small></div>
-              <div class="col-md-3 text-center"><h3>2025</h3><h4>35%</h4><small>Actual</small></div>
+              <div class="col-md-3 text-center"><h3>2025</h3><h4 id="miniProgresoActual">35%</h4><small>Actual</small></div>
               <div class="col-md-3 text-center"><h3>2026</h3><h4>15%</h4><small>Próxima</small></div>
               <div class="col-md-3 text-center"><h3>Total</h3><h4>42%</h4><small>Global</small></div>
             </div>
@@ -161,13 +157,13 @@
             <div class="col-md-4">
               <div class="card kpi-card"><div class="card-body text-center">
                 <h6 class="card-subtitle mb-2 text-muted">Metodologías Institucionalizadas</h6>
-                <h2 class="card-title" style="color:#e5438a;" id="metodologiasInstitucionalizadas">2/5</h2>
+                <h2 class="card-title" style="color:#e5438a;" id="metodologiasInstitucionalizadas">0/5</h2>
                 <p class="card-text">Meta: 5 metodologías en 3 DDE</p>
               </div></div>
               <div class="card kpi-card mt-3"><div class="card-body text-center">
                 <h6 class="card-subtitle mb-2 text-muted">Productos Comunicacionales</h6>
-                <h2 class="card-title" style="color:#41c4b3;" id="productosComunicacionales">10/38</h2>
-                <p class="card-text" id="avanceProductos">26% de avance</p>
+                <h2 class="card-title" style="color:#41c4b3;" id="productosComunicacionales">0/38</h2>
+                <p class="card-text" id="avanceProductos">0% de avance</p>
               </div></div>
             </div>
           </div>
@@ -234,20 +230,22 @@
     // ===== Config =====
     let componentChart, evolutionChart;
     let datosGoogleSheets = { _rows: [] };
-    const SHEET_ID = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
-    const SHEET_NAME = 'DATOS_JERARQUIA'; // nombre exacto de la pestaña
 
-    // Helpers
-    const num = (v) => { if (v==null) return 0; const m=String(v).match(/-?\\d+(\\.\\d+)?/g); return m?Number(m[0].replace(',','.')):0; };
-    const pct = (a,m) => (m>0? Math.min(100, Math.round((a/m)*100)) : 0);
-    const get = (row, keys) => { for(const k of keys){ if(row[k]!=null && row[k]!=='') return row[k]; } return ''; };
-    const getYear = (r) => String(get(r,['Año_Gestión','Año_Gestion','Año','Anio','Gestion'])).trim();
-    const getComp = (r) => String(get(r,['Componente'])).trim();
-    const getIndic = (r) => String(get(r,['Indicador'])).trim();
-    const getMeta  = (r) => num(get(r,['Meta']));
-    const getAvance = (r) => num(get(r,['Avance','Avance_Actual','Actual']));
-    const getPctCumpl = (r) => { const p=get(r,['%_Cumplim','%_Cumplim.','%_Cumplimiento','Cumplimiento_%']); const n=String(p).replace('%','').trim(); return n?Number(n):null; };
-    const getEstado = (r) => String(get(r,['Estado'])).trim();
+    // Ajusta estos valores si cambiaste de hoja
+    const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
+    const SHEET_GID = '0'; // <-- cambia si tu pestaña DATOS_JERARQUIA tiene otro gid
+
+    // Acceso directo a columnas normalizadas
+    const getYear     = (r) => String(r.Anio_Gestion || '').trim();
+    const getComp     = (r) => String(r.Componente || '').trim();
+    const getIndic    = (r) => String(r.Indicador || '').trim();
+    const getMeta     = (r) => Number(r.Meta || 0);
+    const getAvance   = (r) => Number(r.Avance || 0);
+    const getPctCumpl = (r) => {
+      const n = (r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.');
+      return n ? Number(n) : null;
+    };
+    const getEstado   = (r) => String(r.Estado || '').trim();
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
@@ -301,12 +299,17 @@
     async function cargarDatosDesdeSheet(){
       mostrarLoading(true);
       try{
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+        // URL robusta: export CSV por gid (requiere "Publicar en la web" de esa pestaña)
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${encodeURIComponent(SHEET_GID)}`;
         const resp = await fetch(url, { headers:{ 'Cache-Control':'no-cache' } });
         if(!resp.ok) throw new Error('No se pudo leer Google Sheets');
-        const csv = await resp.text();
-        const parsed = Papa.parse(csv,{ header:true, skipEmptyLines:true });
-        if(parsed.errors?.length) console.warn('CSV warnings:', parsed.errors);
+        const csvRaw = await resp.text();
+        const csv = csvRaw.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '');
+
+        const parsed = Papa.parse(csv,{ header:true, skipEmptyLines:'greedy' });
+        // Silencia “FieldMismatch” (común cuando hay columnas extra a la derecha)
+        const realErrors = (parsed.errors||[]).filter(e=>e.type!=='FieldMismatch');
+        if(realErrors.length){ console.warn('CSV parse issues (primeros 3):', realErrors.slice(0,3)); }
 
         procesarFilas(parsed.data);
         renderTabla(parsed.data);
@@ -324,30 +327,33 @@
       datosGoogleSheets._rows = rows;
       const suma = (arr)=>arr.reduce((a,b)=>a+b,0);
 
+      // KPIs por texto del indicador (ajusta si usas nombres fijos)
       const metodologias = rows.filter(r=>getIndic(r).toLowerCase().includes('metodolog')).map(getAvance);
       const instrumentos = rows.filter(r=>getIndic(r).toLowerCase().includes('instrument')).map(getAvance);
       const sello        = rows.filter(r=>getIndic(r).toLowerCase().includes('sello')).map(getAvance);
       const buenas       = rows.filter(r=>getIndic(r).toLowerCase().includes('buena')).map(getAvance);
       const productos    = rows.filter(r=>getIndic(r).toLowerCase().includes('producto')).map(getAvance);
 
+      // Progreso general: promedio de Porcentaje_Cumplimiento si existe; si no, Avance/Meta
       const porcentajes = rows.map(r=>{
         const p=getPctCumpl(r);
         if(p!=null && !Number.isNaN(p)) return Math.max(0,Math.min(100,Math.round(p)));
         const a=getAvance(r), m=getMeta(r);
-        return m>0 ? pct(a,m) : null;
+        return m>0 ? Math.min(100, Math.round((a/m)*100)) : null;
       }).filter(x=>x!==null);
 
-      datosGoogleSheets.metodologias   = suma(metodologias);
-      datosGoogleSheets.instrumentos   = suma(instrumentos);
-      datosGoogleSheets.sello          = suma(sello);
-      datosGoogleSheets.buenasPracticas= suma(buenas);
-      datosGoogleSheets.productos      = suma(productos);
-      datosGoogleSheets.progresoGeneral= porcentajes.length? Math.round(suma(porcentajes)/porcentajes.length) : 0;
+      datosGoogleSheets.metodologias    = suma(metodologias)||0;
+      datosGoogleSheets.instrumentos    = suma(instrumentos)||0;
+      datosGoogleSheets.sello           = suma(sello)||0;
+      datosGoogleSheets.buenasPracticas = suma(buenas)||0;
+      datosGoogleSheets.productos       = suma(productos)||0;
+      datosGoogleSheets.progresoGeneral = porcentajes.length? Math.round(suma(porcentajes)/porcentajes.length) : 0;
 
+      // Distribución por componente (cuenta filas por comp)
       const dist={C1:0,C2:0,C3:0,C4:0};
       rows.forEach(r=>{
         const c=getComp(r);
-        const n=(c.match(/\\d+/)||[''])[0];
+        const n=(c.match(/\d+/)||[''])[0];
         if(n && dist['C'+n]!=null) dist['C'+n]+=1;
       });
       datosGoogleSheets._dist = dist;
@@ -364,9 +370,9 @@
         const meta=getMeta(r);
         const avan=getAvance(r);
         const p=getPctCumpl(r);
-        const perc = p!=null? Math.round(p) : pct(avan,meta);
+        const perc = p!=null? Math.round(p) : (meta>0? Math.min(100, Math.round((avan/meta)*100)) : 0);
         const estado=getEstado(r);
-        const compNum=(comp.match(/\\d+/)||['?'])[0];
+        const compNum=(comp.match(/\d+/)||['?'])[0];
 
         const tr=document.createElement('tr');
         tr.innerHTML=`
@@ -387,6 +393,7 @@
     }
 
     function actualizarKPIsyGraficos(){
+      // KPIs
       document.getElementById('metodologiasInstitucionalizadas').textContent = `${datosGoogleSheets.metodologias}/5`;
       document.getElementById('productosComunicacionales').textContent = `${datosGoogleSheets.productos}/38`;
       document.getElementById('avanceProductos').textContent = `${Math.round((datosGoogleSheets.productos/38)*100)}% de avance`;
@@ -395,7 +402,10 @@
       if(barra){ barra.style.width = `${datosGoogleSheets.progresoGeneral}%`; barra.setAttribute('aria-valuenow',datosGoogleSheets.progresoGeneral); }
       const texto=document.getElementById('textoProgreso');
       if(texto) texto.textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
+      const mini=document.getElementById('miniProgresoActual');
+      if(mini) mini.textContent = `${datosGoogleSheets.progresoGeneral}%`;
 
+      // Doughnut por componente
       if(componentChart && datosGoogleSheets._dist){
         const d=datosGoogleSheets._dist;
         componentChart.data.datasets[0].data = [d.C1||0,d.C2||0,d.C3||0,d.C4||0];
@@ -407,7 +417,7 @@
     function badgeEstado(e=''){
       const v=e.toLowerCase();
       if(v.includes('complet')) return '<span class="badge bg-success">Completado</span>';
-      if(v.includes('progreso')||v.includes('en proceso')) return '<span class="badge bg-warning">En progreso</span>';
+      if(v.includes('progreso')||v.includes('proceso')) return '<span class="badge bg-warning">En progreso</span>';
       if(v.includes('no')) return '<span class="badge bg-secondary">No iniciado</span>';
       return `<span class="badge bg-light text-dark">${e||'—'}</span>`;
     }
