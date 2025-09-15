@@ -628,7 +628,7 @@
             
             try {
                 // Usar el método de "Publicar en web" que no requiere API Key
-                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATOS_JERARQUIA`;
+                const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTzxrLB6WRRr4-_IfGvMvXS0S9vDM-OZuk9yo0rsmDmeNQQ2v78I48VWLsFRzV8O4fFite4a2HX05dJ/pubhtml';
                 const response = await fetch(url);
                 
                 if (!response.ok) {
