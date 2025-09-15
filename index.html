@@ -240,12 +240,12 @@
                         <div class="col-md-3">
                             <label for="yearFilter" class="form-label">Año de Gestión</label>
                             <select class="form-select" id="yearFilter">
-    <option value="2025">2025 (Actual)</option>
-    <option value="2024">2024 (Histórico)</option>
-    <option value="2026">2026 (Próxima)</option>
-    <option value="2027">2027 (Estratégica)</option>
-    <option value="todos">Todos los años</option>
-</select>
+                                <option value="2025">2025 (Actual)</option>
+                                <option value="2024">2024 (Histórico)</option>
+                                <option value="2026">2026 (Próxima)</option>
+                                <option value="2027">2027 (Estratégica)</option>
+                                <option value="todos">Todos los años</option>
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label for="componenteFilter" class="form-label">Componente</label>
@@ -284,19 +284,19 @@
                         <h5><i class="fas fa-calendar-alt"></i> Comparación entre Años</h5>
                         <div class="row">
                             <div class="col-md-3 text-center">
-                                <h3>2025</h3>
+                                <h3>2024</h3>
                                 <h4>65%</h4>
-                                <small>Ejecutado</small>
+                                <small>Histórico</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h3>2025</h3>
+                                <h4>35%</h4>
+                                <small>Actual</small>
                             </div>
                             <div class="col-md-3 text-center">
                                 <h3>2026</h3>
-                                <h4>35%</h4>
-                                <small>En ejecución</small>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <h3>2027</h3>
                                 <h4>15%</h4>
-                                <small>Planificado</small>
+                                <small>Próxima</small>
                             </div>
                             <div class="col-md-3 text-center">
                                 <h3>Total</h3>
@@ -341,7 +341,7 @@
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5 class="card-title">Distribución por Componente (2026)</h5>
+                                    <h5 class="card-title">Distribución por Componente (2025)</h5>
                                     <canvas id="componentChart" height="250"></canvas>
                                 </div>
                             </div>
@@ -362,7 +362,7 @@
                             <div class="card data-card">
                                 <div class="card-header">
                                     <h5 class="card-title">
-                                        <i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - Año 2026
+                                        <i class="fas fa-database"></i> Datos en Tiempo Real desde Google Sheets - Año 2025
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -381,7 +381,7 @@
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td>2026</td>
+                                                    <td>2025</td>
                                                     <td><span class="component-badge">C1</span> Educación</td>
                                                     <td>Metodologías educativas institucionalizadas</td>
                                                     <td>5</td>
@@ -394,7 +394,7 @@
                                                     <td><span class="badge bg-warning">En progreso</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>2026</td>
+                                                    <td>2025</td>
                                                     <td><span class="component-badge">C1</span> Educación</td>
                                                     <td>Instrumentos de capacitación piloteados</td>
                                                     <td>6</td>
@@ -407,7 +407,7 @@
                                                     <td><span class="badge bg-warning">En progreso</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>2025</td>
+                                                    <td>2024</td>
                                                     <td><span class="component-badge">C2</span> Empresas</td>
                                                     <td>Instrumento de sello ampliado</td>
                                                     <td>1</td>
@@ -420,7 +420,7 @@
                                                     <td><span class="badge bg-success">Completado</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>2026</td>
+                                                    <td>2025</td>
                                                     <td><span class="component-badge">C2</span> Empresas</td>
                                                     <td>Buenas prácticas compartidas</td>
                                                     <td>5</td>
@@ -433,7 +433,7 @@
                                                     <td><span class="badge bg-warning">En progreso</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>2026</td>
+                                                    <td>2025</td>
                                                     <td><span class="component-badge">C3</span> Medios</td>
                                                     <td>Productos mediáticos y comunicacionales</td>
                                                     <td>38</td>
@@ -455,7 +455,47 @@
                 </div>
 
                 <!-- Resto de las secciones (indicadores, componentes, etc.) -->
-                <!-- ... (el resto del código se mantiene igual) ... -->
+                <div id="indicadores" class="dashboard-section">
+                    <h2 class="mb-4">Indicadores de Desempeño</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
+                    </div>
+                </div>
+
+                <div id="componentes" class="dashboard-section">
+                    <h2 class="mb-4">Componentes del Proyecto</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
+                    </div>
+                </div>
+
+                <div id="actividades" class="dashboard-section">
+                    <h2 class="mb-4">Actividades</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
+                    </div>
+                </div>
+
+                <div id="calendario" class="dashboard-section">
+                    <h2 class="mb-4">Cronograma</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
+                    </div>
+                </div>
+
+                <div id="productos" class="dashboard-section">
+                    <h2 class="mb-4">Productos</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección se cargará con datos desde Google Sheets.
+                    </div>
+                </div>
+
+                <div id="configuracion" class="dashboard-section">
+                    <h2 class="mb-4">Configuración</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Esta sección permitirá configurar la conexión con Google Sheets.
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -467,7 +507,6 @@
         let componentChart, evolutionChart;
         let datosGoogleSheets = {};
         const SHEET_ID = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
-        const API_KEY = 'AIzaSyCLIgnCWIZHSIQ982qvzbswE4hmWsJUXas';
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
@@ -490,7 +529,10 @@
 
         // Configurar navegación entre secciones
         function configurarNavegacion() {
-            document.querySelectorAll('.nav-link').forEach(link => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            if (navLinks.length === 0) return;
+            
+            navLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     
@@ -506,7 +548,8 @@
                     
                     // Mostrar la sección correspondiente
                     const sectionId = this.getAttribute('data-section');
-                    document.getElementById(sectionId).classList.add('active');
+                    const section = document.getElementById(sectionId);
+                    if (section) section.classList.add('active');
                 });
             });
         }
@@ -514,8 +557,10 @@
         // Inicializar gráficos con datos de ProIgualdad
         function inicializarGraficos() {
             // Gráfico de componentes
-            const componentCtx = document.getElementById('componentChart').getContext('2d');
-            componentChart = new Chart(componentCtx, {
+            const componentCtx = document.getElementById('componentChart');
+            if (!componentCtx) return;
+            
+            componentChart = new Chart(componentCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Educación', 'Empresas', 'Medios', 'Gestión'],
@@ -541,20 +586,22 @@
             });
 
             // Gráfico de evolución por año
-            const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
-            evolutionChart = new Chart(evolutionCtx, {
+            const evolutionCtx = document.getElementById('evolutionChart');
+            if (!evolutionCtx) return;
+            
+            evolutionChart = new Chart(evolutionCtx.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: ['2024', '2025 (Actual)', '2026 (Próx)', '2027 (Estrat)'],
                     datasets: [{
                         label: 'Metodologías Institucionalizadas',
-                        data: [3, 2, 5],
+                        data: [3, 2, 0, 0],
                         borderColor: '#4a3c8d',
                         backgroundColor: 'rgba(74, 60, 141, 0.1)',
                         fill: true
                     }, {
                         label: 'Productos Comunicacionales',
-                        data: [8, 10, 38],
+                        data: [8, 10, 0, 0],
                         borderColor: '#e5438a',
                         backgroundColor: 'rgba(229, 67, 138, 0.1)',
                         fill: true
@@ -580,17 +627,32 @@
             mostrarLoading(true);
             
             try {
-               const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATOS_JERARQUIA`;
+                // Usar el método de "Publicar en web" que no requiere API Key
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=DATOS_JERARQUIA`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
                     throw new Error('Error al cargar datos desde Google Sheets');
                 }
                 
-                const data = await response.json();
+                const csvData = await response.text();
+                console.log('Datos CSV recibidos:', csvData);
                 
-                if (data.values && data.values.length > 1) {
-                    procesarDatos(data.values);
+                // Procesar datos CSV
+                const lineas = csvData.split('\n');
+                const datos = [];
+                
+                for (let i = 0; i < lineas.length; i++) {
+                    const linea = lineas[i].trim();
+                    if (linea !== '') {
+                        // Procesar línea CSV
+                        const campos = linea.split(',').map(campo => campo.trim().replace(/^"|"$/g, ''));
+                        datos.push(campos);
+                    }
+                }
+                
+                if (datos.length > 1) {
+                    procesarDatos(datos);
                     actualizarInterfaz();
                     document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
                 } else {
@@ -608,11 +670,11 @@
 
         // Procesar datos obtenidos de Google Sheets
         function procesarDatos(datos) {
-            // Aquí procesarías los datos según la estructura de tu hoja de cálculo
-            // Este es un ejemplo básico, debes adaptarlo a tu estructura real
+            console.log('Datos procesados:', datos);
             
+            // Aquí procesarías los datos según la estructura de tu hoja de cálculo
+            // Por ahora usamos datos de ejemplo
             datosGoogleSheets = {
-                // Datos de ejemplo que se reemplazarán con los reales
                 metodologias: 2,
                 instrumentos: 3,
                 sello: 1,
@@ -621,16 +683,6 @@
                 productosServidores: 1,
                 progresoGeneral: 35
             };
-            
-            // Actualizar tabla de datos
-            actualizarTablaDatos(datos);
-        }
-
-        // Actualizar tabla con datos de Google Sheets
-        function actualizarTablaDatos(datos) {
-            // Esta función se encargará de actualizar la tabla con los datos reales
-            // Por ahora muestra datos estáticos de ejemplo
-            console.log('Datos recibidos de Google Sheets:', datos);
         }
 
         // Usar datos de ejemplo si no se pueden cargar desde Google Sheets
@@ -657,9 +709,16 @@
             document.getElementById('avanceProductos').textContent = `${Math.round((datosGoogleSheets.productos/38)*100)}% de avance`;
             
             // Actualizar barras de progreso
-            document.getElementById('progresoGeneral').style.width = `${datosGoogleSheets.progresoGeneral}%`;
-            document.getElementById('progresoGeneral').setAttribute('aria-valuenow', datosGoogleSheets.progresoGeneral);
-            document.getElementById('textoProgreso').textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
+            const progresoGeneral = document.getElementById('progresoGeneral');
+            if (progresoGeneral) {
+                progresoGeneral.style.width = `${datosGoogleSheets.progresoGeneral}%`;
+                progresoGeneral.setAttribute('aria-valuenow', datosGoogleSheets.progresoGeneral);
+            }
+            
+            const textoProgreso = document.getElementById('textoProgreso');
+            if (textoProgreso) {
+                textoProgreso.textContent = `Progreso general: ${datosGoogleSheets.progresoGeneral}%`;
+            }
             
             // Actualizar gráficos
             actualizarGraficos();
@@ -668,18 +727,23 @@
         // Actualizar gráficos con nuevos datos
         function actualizarGraficos() {
             // Actualizar gráfico de componentes
-            componentChart.data.datasets[0].data = [
-                30 + (datosGoogleSheets.progresoGeneral / 100 * 20),
-                20 + (datosGoogleSheets.progresoGeneral / 100 * 15),
-                25 + (datosGoogleSheets.progresoGeneral / 100 * 15),
-                20 + (datosGoogleSheets.progresoGeneral / 100 * 10)
-            ];
-            componentChart.update();
+            if (componentChart) {
+                componentChart.data.datasets[0].data = [
+                    30 + (datosGoogleSheets.progresoGeneral / 100 * 20),
+                    20 + (datosGoogleSheets.progresoGeneral / 100 * 15),
+                    25 + (datosGoogleSheets.progresoGeneral / 100 * 15),
+                    20 + (datosGoogleSheets.progresoGeneral / 100 * 10)
+                ];
+                componentChart.update();
+            }
         }
 
         // Mostrar/ocultar overlay de carga
         function mostrarLoading(mostrar) {
-            document.getElementById('loadingOverlay').style.display = mostrar ? 'flex' : 'none';
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = mostrar ? 'flex' : 'none';
+            }
         }
 
         // Aplicar filtros
@@ -755,7 +819,6 @@
                 // Simular carga de datos
                 usarDatosEjemplo();
                 mostrarLoading(false);
-                alert('Datos actualizados correctamente');
             }, 1500);
         }
     </script>
