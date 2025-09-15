@@ -283,21 +283,46 @@
   <!-- Lógica -->
   <script>
     // ======= Config (AJUSTA AQUÍ) =======
-    const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68'; // <-- tu ID
-    const SHEET_GID = '0'; // <-- gid de DATOS_JERARQUIA
+    const SHEET_ID  = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68'; // ID de tu Google Sheet
+    const SHEET_GID = '0'; // gid de la pestaña DATOS_JERARQUIA (cámbialo si no es 0)
 
     // ======= Estado global =======
     let indicadoresChart, componentesChart, componentChart, evolutionChart;
     let datosGoogleSheets = { _rows: [] };
 
-    // ======= Utilidades =======
-    const getYear   = r => String(r.Anio_Gestion || '').trim();
-    const getComp   = r => String(r.Componente || '').trim();
-    const getIndic  = r => String(r.Indicador || '').trim();
-    const getMeta   = r => Number(r.Meta || 0);
-    const getAvance = r => Number(r.Avance || 0);
-    const getPctCumpl = r => { const n=(r.Porcentaje_Cumplimiento ?? '').toString().replace('%','').replace(',','.'); return n?Number(n):null; };
-    const getEstado = r => String(r.Estado || '').trim();
+    // ======= Utilidades robustas =======
+    function num(val){
+      if (val === null || val === undefined) return 0;
+      const s = String(val).replace(',', '.');
+      const m = s.match(/-?\d+(?:\.\d+)?/);
+      return m ? Number(m[0]) : 0;
+    }
+    function pick(r, regexes){
+      for (const k in r){
+        const lk = k.toLowerCase().trim();
+        if (regexes.some(rx => rx.test(lk))) return r[k];
+      }
+      return null;
+    }
+
+    const getYear  = r => String(
+      pick(r,[/a(ñ|n)o.*gesti/ , /^a(ñ|n)o$/, /^anio.*gesti/]) ?? r.Anio_Gestion ?? r.Año ?? r.Anio ?? ''
+    ).trim();
+
+    const getComp  = r => String(pick(r,[/^componente/]) ?? r.Componente ?? '').trim();
+    const getIndic = r => String(pick(r,[/^indicador/]) ?? r.Indicador ?? '').trim();
+    const getMes   = r => String(pick(r,[/^mes$/]) ?? r.Mes ?? '').trim();
+
+    const getMeta   = r => num( pick(r,[/^meta$/, /^objetivo$/, /^target$/]) ?? r.Meta );
+    const getAvance = r => num( pick(r,[/^avance$/, /^actual$/, /^ejecutad/, /^real/i]) ?? r.Avance );
+
+    const getPctCumpl = r => {
+      const raw = pick(r,[/porcentaje/, /%/, /cumpl/]) ?? r.Porcentaje_Cumplimiento;
+      if (raw === null || raw === undefined || raw==='') return null;
+      return Math.max(0, Math.min(100, num(raw)));
+    };
+
+    const getEstado = r => String(pick(r,[/^estado$/, /^estatus$/, /^situaci/]) ?? r.Estado ?? '').trim();
 
     function estadoWeight(e){ const v=(e||'').toLowerCase(); if(v.includes('complet')) return 2; if(v.includes('progreso')||v.includes('proceso')) return 1; if(v.includes('no')) return 0; return 0; }
     function badgeEstado(e=''){
@@ -383,14 +408,21 @@
 
       // Inicializa gráficos vacíos
       const c1 = document.getElementById('componentChart')?.getContext('2d');
-      componentChart = new Chart(c1,{ type:'doughnut',
-        data:{ labels:[], datasets:[{ data:[], borderWidth:0 }] },
+      componentChart = new Chart(c1,{
+        type:'doughnut',
+        data:{ labels:[], datasets:[{
+          data:[], borderWidth:0,
+          backgroundColor:['#4a3c8d','#28a745','#17a2b8','#6c757d'] // C1..C4
+        }]},
         options:{ plugins:{ legend:{ position:'bottom'} } }
       });
       const c2 = document.getElementById('evolutionChart')?.getContext('2d');
       evolutionChart = new Chart(c2,{ type:'line',
         data:{ labels:[], datasets:[] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+        options:{ responsive:true, maintainAspectRatio:false,
+          scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } },
+          plugins:{ legend:{ position:'top' } }
+        }
       });
 
       cargarDatosDesdeSheet();
@@ -454,8 +486,12 @@
       const agg = aggregateByIndicator(filasFiltradas());
       const labels = agg.map(x=>x.Indicador);
       const data   = agg.map(x=>x.Pct);
-      const cfg = { type:'bar', data:{ labels, datasets:[{ label:'% Avance', data }] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ display:false } } } };
+      const cfg = { type:'bar',
+        data:{ labels, datasets:[{ label:'% Avance', data, backgroundColor:'#4a3c8d' }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:ctx=>` ${ctx.parsed.y}%` }} }
+        } };
       if(indicadoresChart){ indicadoresChart.data = cfg.data; indicadoresChart.update(); } else { indicadoresChart = new Chart(canvas, cfg); }
     }
 
@@ -467,13 +503,17 @@
       const agg  = aggregateByIndicator(rows);
       const byComp = {};
       agg.forEach(o=>{
-        if(!byComp[o.Componente]) byComp[o.Componente] = {av:0};
+        if(!byComp[o.Componente]) byComp[o.Componente] = {av:0, meta:0};
         byComp[o.Componente].av   += (o.Avance||0);
+        byComp[o.Componente].meta += (o.Meta||0);
       });
       const labels = Object.keys(byComp).sort();
-      const avanceShare = labels.map(c=> byComp[c].av );
+      let data     = labels.map(c=> byComp[c].av );
+      const total  = data.reduce((a,b)=>a+b,0);
+      if (total === 0) data = labels.map(c=> byComp[c].meta); // respaldo
+
       componentChart.data.labels = labels.map(l=> l.replace(/^Componente\s*/i, 'C'));
-      componentChart.data.datasets[0].data = avanceShare;
+      componentChart.data.datasets[0].data = data;
       componentChart.update();
     }
 
@@ -487,16 +527,18 @@
       rows.forEach(r=>{
         const y = getYear(r); if(!byYear[y]) return;
         const ind = getIndic(r).toLowerCase();
-        const meta = getMeta(r)||0, av = getAvance(r)||0;
+        const meta = getMeta(r), av = getAvance(r);
         if(ind.includes('metodolog')) { byYear[y].metod.meta += meta; byYear[y].metod.av += av; }
         if(ind.includes('producto'))  { byYear[y].prod.meta  += meta; byYear[y].prod.av  += av; }
       });
 
-      const labels = targets.map(y => y==='2025'?'2025 (Actual)': y==='2026'?'2026 (Próx)': '2027 (Estrat)');
+      const labels = targets.map(y => y==='2025'?'2025 (Actual)': y==='2026'?'2026 (Próx)':'2027 (Estrat)');
       const mAv = targets.map(y=>byYear[y].metod.av);
       const mMe = targets.map(y=>byYear[y].metod.meta);
       const pAv = targets.map(y=>byYear[y].prod.av);
       const pMe = targets.map(y=>byYear[y].prod.meta);
+
+      const maxVal = Math.max(...mAv, ...mMe, ...pAv, ...pMe, 5);
 
       evolutionChart.data.labels = labels;
       evolutionChart.data.datasets = [
@@ -505,6 +547,7 @@
         { label:'Productos - Avance',    data:pAv, fill:false, tension:.3, borderColor:'#e5438a' },
         { label:'Productos - Meta',      data:pMe, fill:false, tension:.3, borderDash:[6,6], borderColor:'#e5438a' },
       ];
+      evolutionChart.options.scales.y.suggestedMax = Math.ceil(maxVal*1.1);
       evolutionChart.update();
     }
 
@@ -532,7 +575,8 @@
       const labels = Object.keys(compAgg).sort();
       const data   = labels.map(c=>{ const it=compAgg[c]; return it.pcts.length? Math.round(it.pcts.reduce((a,b)=>a+b,0)/it.pcts.length):0; });
       const ctx = document.getElementById('componentesAvanceChart').getContext('2d');
-      const cfg = { type:'bar', data:{labels, datasets:[{label:'% promedio', data}]}, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true,max:100}} } };
+      const cfg = { type:'bar', data:{labels, datasets:[{label:'% promedio', data, backgroundColor:'#4a3c8d'}]},
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}} } };
       if(componentesChart){ componentesChart.data=cfg.data; componentesChart.update(); } else { componentesChart = new Chart(ctx,cfg); }
 
       // tabla agregada
@@ -565,7 +609,7 @@
         const meta=getMeta(r), av=getAvance(r);
         const p=getPctCumpl(r); const perc = p!=null? Math.round(p) : (meta>0? Math.round((av/meta)*100):0);
         const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${getIndic(r)}</td><td>${r.Actividad_Principal||''}</td><td>${r.Subactividad||''}</td><td>${r.Tarea_Especifica||''}</td><td>${r.Responsable||''}</td><td>${r.Mes||''}</td><td><div class="progress" style="height:10px;"><div class="progress-bar" style="width:${perc}%;">${perc}%</div></div></td><td>${badgeEstado(getEstado(r))}</td>`;
+        tr.innerHTML = `<td>${getIndic(r)}</td><td>${r.Actividad_Principal||''}</td><td>${r.Subactividad||''}</td><td>${r.Tarea_Especifica||''}</td><td>${r.Responsable||''}</td><td>${getMes(r)}</td><td><div class="progress" style="height:10px;"><div class="progress-bar" style="width:${perc}%;">${perc}%</div></div></td><td>${badgeEstado(getEstado(r))}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -581,7 +625,7 @@
       const groups={};
       rows.forEach(r=>{
         const act=String(r.Actividad_Principal||'').trim(); if(!act) return;
-        const m=mesToIndex(r.Mes); if(!m) return;
+        const m=mesToIndex(getMes(r)); if(!m) return;
         const w=estadoWeight(getEstado(r));
         if(!groups[act]) groups[act]={}; groups[act][m]=Math.max(groups[act][m]??-1, w);
       });
@@ -605,7 +649,7 @@
       document.getElementById('progresoGeneral').style.width = prom+'%';
       document.getElementById('textoProgreso').textContent = `Progreso general: ${prom}%`;
 
-      // Pequeños indicadores (estimados a partir de agregación por palabras)
+      // Indicadores de ejemplo (por nombre)
       const metas = agg.filter(x=>x.Indicador.toLowerCase().includes('metodolog'));
       const prods = agg.filter(x=>x.Indicador.toLowerCase().includes('producto'));
       const sumaAvMet = metas.reduce((s,x)=>s+(x.Avance||0),0);
