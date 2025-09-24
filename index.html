@@ -219,7 +219,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // ====== CONFIG ======
-    // ⚠️ Cambia SOLO este ID si tu hoja es otra (el nombre de pestaña abajo)
+    // ⚠️ Cambia SOLO este ID si tu hoja es otra (y SHEET_NAME si la pestaña tiene otro nombre)
     const SHEET_ID   = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
     const SHEET_NAME = 'DATOS_JERARQUIA';
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
@@ -241,7 +241,7 @@
     const IND_A_COMP  = {'1.1':'C1','1.2':'C1','2.1':'C2','2.2':'C2','3.1':'C3','3.2':'C3'};
 
     // ====== STATE ======
-    let rows=[], agg={}; // rows = crudo, agg = {year:{ '1.1':{meta,actual} }}
+    let rows=[], agg={}; // rows = crudo, agg = {year:{ '1.1':{m,a,pct?} }}
 
     const $ = s => document.querySelector(s);
     const fmt = n => (isFinite(n)? Intl.NumberFormat('es-BO').format(n):'-');
@@ -274,7 +274,7 @@
       return isNaN(n)?0:n;
     };
 
-    // ---------- Mapeo de columnas (más flexible) ----------
+    // ---------- Mapeo de columnas (incluye Porcentaje_Cumplimiento) ----------
     const colMap = (header)=>{
       const norm = s => String(s||'').trim().toLowerCase();
       const h = header.map(norm);
@@ -285,7 +285,8 @@
         comp: find(['componente']),
         ind : find(['indicador']),
         meta: find(['meta','meta total','meta_global','meta anual']),
-        act : find(['actual','avance','logro','realizado','producido','alcanzado'])
+        act : find(['actual','avance','logro','realizado','producido','alcanzado']),
+        pct : find(['%_cumpl','porcentaje_cumpl','% cumplimiento','%cumpl','porcentaje de cumplimiento','porcentaje_cumplimiento','porcentaje cumplimiento','porcentaje'])
       };
 
       console.log('[Mapeo columnas]', {header, idx});
@@ -314,17 +315,17 @@
           ind:  (r[c.ind]||'').trim(),
           m: parseNum(r[c.meta]),
           a: parseNum(r[c.act]),
-          s: '' // estado no se usa en este consolidado
+          p: c.pct>=0 ? parseNum(r[c.pct]) : 0 // Porcentaje_Cumplimiento si existe
         }));
       }catch(e){
         console.warn('Fallo carga, usando ejemplo:', e);
         rows = [
-          {y:'2025',comp:'C1',ind:'1.1 Metodologías',m:5,a:2},
-          {y:'2025',comp:'C1',ind:'1.2 Instrumentos',m:6,a:3},
-          {y:'2025',comp:'C2',ind:'2.1 Sello ampliado',m:1,a:0},
-          {y:'2025',comp:'C2',ind:'2.2 Buenas prácticas',m:5,a:2},
-          {y:'2025',comp:'C3',ind:'3.1 Productos',m:38,a:10},
-          {y:'2025',comp:'C3',ind:'3.2 Comunicacionales',m:3,a:1}
+          {y:'2025',comp:'C1',ind:'1.1 Metodologías',m:5,a:0,p:40},
+          {y:'2025',comp:'C1',ind:'1.2 Instrumentos',m:6,a:0,p:50},
+          {y:'2025',comp:'C2',ind:'2.1 Sello ampliado',m:1,a:0,p:0},
+          {y:'2025',comp:'C2',ind:'2.2 Buenas prácticas',m:5,a:0,p:40},
+          {y:'2025',comp:'C3',ind:'3.1 Productos',m:38,a:0,p:26},
+          {y:'2025',comp:'C3',ind:'3.2 Comunicacionales',m:3,a:0,p:33}
         ];
       }finally{
         buildAgg(); renderAll();
@@ -333,30 +334,41 @@
       }
     }
 
-    // ---------- Consolidado (meta = máximo, actual = suma) ----------
+    // ---------- Consolidado
+    // Si hay Porcentaje_Cumplimiento: usamos el MÁXIMO % por indicador-año y calculamos a = m * pct/100.
+    // Si no hay, seguimos con "actual/avance" sumado.
     function buildAgg(){
       agg = {};
       rows.forEach(r=>{
-        const p = indPrefix(r.ind);  // "1.1", "2.1", etc.
-        if(!p) return;
+        const pfx = indPrefix(r.ind);  // "1.1", "2.1", etc.
+        if(!pfx) return;
         if(!agg[r.y]) agg[r.y] = {};
-        if(!agg[r.y][p]) agg[r.y][p] = {m:0, a:0};
+        if(!agg[r.y][pfx]) agg[r.y][pfx] = {m:0, a:0, pct:0};
 
-        // ACTUAL: suma (varias actividades aportan)
-        agg[r.y][p].a += (r.a || 0);
+        // META: puede repetirse por fila → guardar el mayor
+        if ((r.m||0) > agg[r.y][pfx].m) agg[r.y][pfx].m = (r.m||0);
 
-        // META: puede repetirse por fila → tomar el máximo
-        const metaFila = (r.m || 0);
-        if (metaFila > agg[r.y][p].m) {
-          agg[r.y][p].m = metaFila;
-        }
+        // % Cumplimiento: quedarse con el máximo por indicador-año
+        if ((r.p||0) > agg[r.y][pfx].pct) agg[r.y][pfx].pct = (r.p||0);
+
+        // Respaldo si NO hay %: sumar "actual"
+        agg[r.y][pfx].a += (r.p>0 ? 0 : (r.a||0));
       });
 
-      // Relleno por años y metas fijas si faltan
+      // Si hubo % en ese indicador-año, derivar "a" desde meta: a = m * pct/100
+      Object.keys(agg).forEach(y=>{
+        Object.keys(agg[y]).forEach(pfx=>{
+          if (agg[y][pfx].pct>0){
+            agg[y][pfx].a = Math.round( (agg[y][pfx].m || METAS_FIJAS[pfx] || 0) * (agg[y][pfx].pct/100) );
+          }
+        });
+      });
+
+      // Rellenar años y metas fijas si faltan
       ['2025','2026','2027'].forEach(y=>{
         if(!agg[y]) agg[y]={};
         Object.keys(METAS_FIJAS).forEach(p=>{
-          if(!agg[y][p]) agg[y][p] = {m:METAS_FIJAS[p], a:0};
+          if(!agg[y][p]) agg[y][p] = {m:METAS_FIJAS[p], a:0, pct:0};
           if(!agg[y][p].m) agg[y][p].m = METAS_FIJAS[p];
         });
       });
