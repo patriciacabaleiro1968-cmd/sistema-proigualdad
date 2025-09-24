@@ -44,6 +44,12 @@
     .badge-state.bg-secondary{ background:#adb5bd!important; }
 
     .text-truncate-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+    /* Mini-Gantt */
+    .gantt{ width:100%; border-collapse:separate; border-spacing:0; }
+    .gantt th,.gantt td{ border:1px solid #e7eaf3; padding:.35rem .5rem; font-size:.9rem; }
+    .gantt thead th{ position:sticky; top:0; background:#fff; z-index:1; }
+    .gantt .hit{ background:rgba(74,60,141,.12); border-color:#bfb9d9; }
   </style>
 </head>
 <body>
@@ -74,6 +80,8 @@
           <a class="nav-link active" href="#" data-section="resumen"><i class="fa-solid fa-chart-pie"></i> Resumen General</a>
           <a class="nav-link" href="#" data-section="indicadores"><i class="fa-solid fa-chart-bar"></i> Indicadores</a>
           <a class="nav-link" href="#" data-section="componentes"><i class="fa-solid fa-puzzle-piece"></i> Componentes</a>
+          <a class="nav-link" href="#" data-section="actividades"><i class="fa-solid fa-list-check"></i> Actividades</a>
+          <a class="nav-link" href="#" data-section="cronograma"><i class="fa-solid fa-calendar-days"></i> Cronograma</a>
           <a class="nav-link" href="#" data-section="configuracion"><i class="fa-solid fa-gear"></i> Configuración</a>
         </nav>
       </div>
@@ -169,7 +177,6 @@
             </div>
           </div>
 
-          <!-- Tabla consolidada -->
           <div class="card mt-3">
             <div class="card-header">
               <h6 class="mb-0"><i class="fa-solid fa-database me-2"></i>Consolidado por Indicador – <span id="titleYear">2025</span></h6>
@@ -196,8 +203,11 @@
           <h2 class="mb-3">Indicadores de Desempeño</h2>
           <div class="card p-3 mb-3">
             <h6 class="mb-2">Comparativo (% de avance por indicador) – <span id="titleBars">2025</span></h6>
-            <div id="wrapBars"><canvas id="barsChart" height="240"></canvas></div>
+            <div id="wrapBars"><canvas id="barsChart" height="260"></canvas></div>
             <div id="emptyBars" class="empty-state d-none"><div><i class="fa-regular fa-circle-xmark me-2"></i>Sin datos para graficar</div></div>
+            <div class="small text-muted mt-2">
+              * Pasa el mouse sobre cada barra para ver el texto completo del indicador.
+            </div>
           </div>
         </div>
 
@@ -207,10 +217,40 @@
           <div class="row g-3" id="cardsComp"></div>
         </div>
 
+        <!-- ===== ACTIVIDADES ===== -->
+        <div id="actividades" class="dashboard-section">
+          <h2 class="mb-3">Actividades</h2>
+          <div class="card p-3">
+            <div id="actInfo" class="alert alert-info d-none">
+              No se detectaron columnas de actividad (se buscan: <b>Actividad_Principal</b>, <b>Actividad</b>, <b>Actividad_Princ</b>).<br/>
+              Cuando existan, aquí verás el listado por mes.
+            </div>
+            <div id="actWrap" class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead class="table-light">
+                  <tr><th>Mes</th><th>Actividad</th><th>Indicador</th><th class="text-end">Meta</th><th class="text-end">Actual</th><th>%</th></tr>
+                </thead>
+                <tbody id="tblAct"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== CRONOGRAMA ===== -->
+        <div id="cronograma" class="dashboard-section">
+          <h2 class="mb-3">Cronograma (Mini-Gantt)</h2>
+          <div class="card p-3">
+            <div id="ganttInfo" class="alert alert-info d-none">Para mostrar el cronograma, agrega una columna de actividad y una columna de <b>Mes</b> (Enero… Diciembre).</div>
+            <div class="table-responsive">
+              <table class="gantt table-sm" id="tblGantt"></table>
+            </div>
+          </div>
+        </div>
+
         <!-- ===== CONFIG ===== -->
         <div id="configuracion" class="dashboard-section">
           <h2 class="mb-3">Configuración</h2>
-          <div class="alert alert-info">Aquí podemos parametrizar el ID de la hoja y ajustes finos. (<b>SHEET_ID</b> en el código)</div>
+          <div class="alert alert-info">Aquí puedes ajustar el ID de la hoja (<b>SHEET_ID</b>) y la pestaña (<b>SHEET_NAME</b>) en el código.</div>
         </div>
       </div>
     </div>
@@ -218,7 +258,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // ====== CONFIG ======
+    /* ==================== CONFIG ==================== */
     // ⚠️ Cambia SOLO este ID si tu hoja es otra (y SHEET_NAME si la pestaña tiene otro nombre)
     const SHEET_ID   = '12BUwefZ4ZTHkNChkZtJlp9aD5dwrpOLPnVecytapt68';
     const SHEET_NAME = 'DATOS_JERARQUIA';
@@ -240,14 +280,18 @@
     const METAS_FIJAS = {'1.1':5,'1.2':6,'2.1':1,'2.2':5,'3.1':38,'3.2':3};
     const IND_A_COMP  = {'1.1':'C1','1.2':'C1','2.1':'C2','2.2':'C2','3.1':'C3','3.2':'C3'};
 
-    // ====== STATE ======
-    let rows=[], agg={}; // rows = crudo, agg = {year:{ '1.1':{m,a,pct?} }}
-
+    /* ==================== STATE ==================== */
+    let rows=[], agg={};
     const $ = s => document.querySelector(s);
     const fmt = n => (isFinite(n)? Intl.NumberFormat('es-BO').format(n):'-');
     const pct = (a,m)=> m>0 ? Math.round((a/m)*100) : 0;
+    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const monthIdx = m => {
+      const i = MONTHS.findIndex(x => x.toLowerCase() === String(m||'').toLowerCase());
+      return i>=0? i : -1;
+    };
 
-    // ====== CSV PARSER ======
+    /* ==================== CSV PARSER ==================== */
     const csvToArray = (text)=>{
       const out=[]; let row=[], cur='', q=false;
       for(let i=0;i<text.length;i++){
@@ -267,14 +311,13 @@
       if(cur.length || row.length){ row.push(cur); out.push(row); }
       return out;
     };
-
     const parseNum = v => {
       if (v===null||v===undefined) return 0;
       const n = parseFloat(String(v).replace(/[%\s]/g,'').replace(',','.'));
       return isNaN(n)?0:n;
     };
 
-    // ---------- Mapeo de columnas (incluye Porcentaje_Cumplimiento) ----------
+    // ---------- Mapeo de columnas ----------
     const colMap = (header)=>{
       const norm = s => String(s||'').trim().toLowerCase();
       const h = header.map(norm);
@@ -282,14 +325,14 @@
 
       const idx = {
         anio: find(['año','anio','gestión','gestion']),
+        mes : find(['mes']),
         comp: find(['componente']),
         ind : find(['indicador']),
         meta: find(['meta','meta total','meta_global','meta anual']),
         act : find(['actual','avance','logro','realizado','producido','alcanzado']),
-        pct : find(['%_cumpl','porcentaje_cumpl','% cumplimiento','%cumpl','porcentaje de cumplimiento','porcentaje_cumplimiento','porcentaje cumplimiento','porcentaje'])
+        pct : find(['%_cumpl','porcentaje_cumpl','% cumplimiento','%cumpl','porcentaje de cumplimiento','porcentaje_cumplimiento','porcentaje cumplimiento','porcentaje']),
+        actName: find(['actividad_principal','actividad_princ','actividad principal','actividad'])
       };
-
-      console.log('[Mapeo columnas]', {header, idx});
       return idx;
     };
 
@@ -298,7 +341,7 @@
       return m? m[1] : null;
     };
 
-    // ====== LOAD ======
+    /* ==================== LOAD ==================== */
     async function load(){
       $('#loading').classList.remove('d-none');
       try{
@@ -311,21 +354,20 @@
         const header = arr[0], c = colMap(header);
         rows = arr.slice(1).map(r=>({
           y: (r[c.anio]||'').toString().replace(/[^\d]/g,''),
+          mes: (r[c.mes]||'').toString().trim(),
           comp: (r[c.comp]||'').trim(),
           ind:  (r[c.ind]||'').trim(),
           m: parseNum(r[c.meta]),
           a: parseNum(r[c.act]),
-          p: c.pct>=0 ? parseNum(r[c.pct]) : 0 // Porcentaje_Cumplimiento si existe
+          p: c.pct>=0 ? parseNum(r[c.pct]) : 0,
+          actName: c.actName>=0 ? (r[c.actName]||'').toString().trim() : ''
         }));
       }catch(e){
         console.warn('Fallo carga, usando ejemplo:', e);
         rows = [
-          {y:'2025',comp:'C1',ind:'1.1 Metodologías',m:5,a:0,p:40},
-          {y:'2025',comp:'C1',ind:'1.2 Instrumentos',m:6,a:0,p:50},
-          {y:'2025',comp:'C2',ind:'2.1 Sello ampliado',m:1,a:0,p:0},
-          {y:'2025',comp:'C2',ind:'2.2 Buenas prácticas',m:5,a:0,p:40},
-          {y:'2025',comp:'C3',ind:'3.1 Productos',m:38,a:0,p:26},
-          {y:'2025',comp:'C3',ind:'3.2 Comunicacionales',m:3,a:0,p:33}
+          {y:'2025',mes:'Febrero',comp:'C1',ind:'1.1 Metodologías',m:5,a:0,p:40,actName:'Socializar línea base'},
+          {y:'2025',mes:'Junio',comp:'C2',ind:'2.2 Buenas prácticas',m:5,a:0,p:40,actName:'Recopilar casos'},
+          {y:'2025',mes:'Septiembre',comp:'C3',ind:'3.1 Productos',m:38,a:0,p:26,actName:'Producción cápsulas'}
         ];
       }finally{
         buildAgg(); renderAll();
@@ -335,36 +377,33 @@
     }
 
     // ---------- Consolidado
-    // Si hay Porcentaje_Cumplimiento: usamos el MÁXIMO % por indicador-año y calculamos a = m * pct/100.
-    // Si no hay, seguimos con "actual/avance" sumado.
     function buildAgg(){
       agg = {};
       rows.forEach(r=>{
-        const pfx = indPrefix(r.ind);  // "1.1", "2.1", etc.
+        const pfx = indPrefix(r.ind);
         if(!pfx) return;
         if(!agg[r.y]) agg[r.y] = {};
         if(!agg[r.y][pfx]) agg[r.y][pfx] = {m:0, a:0, pct:0};
 
-        // META: puede repetirse por fila → guardar el mayor
+        // meta mayor
         if ((r.m||0) > agg[r.y][pfx].m) agg[r.y][pfx].m = (r.m||0);
-
-        // % Cumplimiento: quedarse con el máximo por indicador-año
+        // % máximo
         if ((r.p||0) > agg[r.y][pfx].pct) agg[r.y][pfx].pct = (r.p||0);
-
-        // Respaldo si NO hay %: sumar "actual"
+        // respaldo si no hay %
         agg[r.y][pfx].a += (r.p>0 ? 0 : (r.a||0));
       });
 
-      // Si hubo % en ese indicador-año, derivar "a" desde meta: a = m * pct/100
+      // derivar "a" desde % si existe
       Object.keys(agg).forEach(y=>{
         Object.keys(agg[y]).forEach(pfx=>{
           if (agg[y][pfx].pct>0){
-            agg[y][pfx].a = Math.round( (agg[y][pfx].m || METAS_FIJAS[pfx] || 0) * (agg[y][pfx].pct/100) );
+            const meta = agg[y][pfx].m || METAS_FIJAS[pfx] || 0;
+            agg[y][pfx].a = Math.round( meta * (agg[y][pfx].pct/100) );
           }
         });
       });
 
-      // Rellenar años y metas fijas si faltan
+      // rellenar
       ['2025','2026','2027'].forEach(y=>{
         if(!agg[y]) agg[y]={};
         Object.keys(METAS_FIJAS).forEach(p=>{
@@ -374,7 +413,7 @@
       });
     }
 
-    // ====== RENDER ======
+    /* ==================== RENDER ==================== */
     let charts={donut:null,evo:null,bars:null};
     const sumMeta   = (years,p)=> years.reduce((t,y)=> t+(agg[y]?.[p]?.m||METAS_FIJAS[p]||0),0);
     const sumActual = (years,p)=> years.reduce((t,y)=> t+(agg[y]?.[p]?.a||0),0);
@@ -389,8 +428,10 @@
       renderDonut(year);
       renderEvolution();
       renderTable(year, compSel);
-      renderBars(year);
+      renderBars(year, compSel);
       renderCompCards();
+      renderActivities(year, compSel);
+      renderGantt(year, compSel);
     }
 
     function renderKPIs(year){
@@ -489,15 +530,29 @@
       });
     }
 
-    function renderBars(year){
+    // === Indicadores (barras) con filtro por componente y etiquetas legibles
+    function renderBars(year, compSel){
       const ys = (year==='todos')? ['2025','2026','2027'] : [year];
       const order=['1.1','1.2','2.1','2.2','3.1','3.2'];
-      const labels = order.map(p=> INDICADORES[p].replace(/^Indicador \d\.\d:\s*/, ''));
-      const values = order.map(p=> pct(sumActual(ys,p), sumMeta(ys,p)));
+      const keys = order.filter(k => !compSel || IND_A_COMP[k]===compSel);
+
+      // etiquetas cortas
+      const short = {
+        '1.1':'1.1 Metodologías',
+        '1.2':'1.2 Instrumentos',
+        '2.1':'2.1 Sello ampliado',
+        '2.2':'2.2 Buenas prácticas',
+        '3.1':'3.1 Productos mediáticos',
+        '3.2':'3.2 Productos comunicacionales'
+      };
+
+      const labels = keys.map(k=> short[k]);
+      const labelsFull = keys.map(k=> INDICADORES[k]); // para tooltip
+      const values = keys.map(k=> pct(sumActual(ys,k), sumMeta(ys,k)));
       const allZero = values.every(v=> v===0);
 
       if (charts.bars){ charts.bars.destroy(); charts.bars=null; }
-      if (allZero){ $('#wrapBars').classList.add('d-none'); $('#emptyBars').classList.remove('d-none'); return; }
+      if (allZero || labels.length===0){ $('#wrapBars').classList.add('d-none'); $('#emptyBars').classList.remove('d-none'); return; }
       $('#emptyBars').classList.add('d-none'); $('#wrapBars').classList.remove('d-none');
 
       charts.bars = new Chart($('#barsChart'),{
@@ -506,7 +561,15 @@
         options:{
           responsive:true, indexAxis:'y',
           scales:{ x:{ beginAtZero:true, max:100, ticks:{ callback:v=> v+'%' } } },
-          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=> c.raw+'%' } } }
+          plugins:{
+            legend:{ display:false },
+            tooltip:{
+              callbacks:{
+                title:(ctx)=> labelsFull[ctx[0].dataIndex],
+                label:(ctx)=> `Avance: ${ctx.raw}%`
+              }
+            }
+          }
         }
       });
     }
@@ -529,12 +592,95 @@
       });
     }
 
-    // ====== NAV / INIT ======
+    // === Actividades (si hay columnas)
+    function renderActivities(year, compSel){
+      const tb = $('#tblAct'); tb.innerHTML='';
+      const info = $('#actInfo'); info.classList.add('d-none');
+
+      // detectar columnas: ya mapeamos actName y mes
+      const hasAct = rows.some(r=> r.actName);
+      const hasMes = rows.some(r=> monthIdx(r.mes)>=0);
+      if (!hasAct || !hasMes){
+        info.classList.remove('d-none'); return;
+      }
+
+      const ys = (year==='todos')? ['2025','2026','2027'] : [year];
+      const filtered = rows.filter(r=>{
+        if (!ys.includes(r.y)) return false;
+        if (compSel && r.comp!==compSel) return false;
+        return !!r.actName && monthIdx(r.mes)>=0;
+      });
+
+      // ordenar por mes
+      filtered.sort( (a,b)=> monthIdx(a.mes)-monthIdx(b.mes) );
+
+      filtered.forEach(r=>{
+        const pfx = indPrefix(r.ind);
+        const m = r.m || METAS_FIJAS[pfx] || 0;
+        // tomar % si existe
+        const act = (r.p>0 && m>0) ? Math.round(m*(r.p/100)) : (r.a||0);
+        const per = pct(act,m);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.mes}</td>
+          <td>${r.actName}</td>
+          <td>${pfx || ''}</td>
+          <td class="text-end">${fmt(m)}</td>
+          <td class="text-end">${fmt(act)}</td>
+          <td>${per}%</td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      if (tb.children.length===0){
+        tb.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin registros para el filtro aplicado.</td></tr>`;
+      }
+    }
+
+    // === Mini-Gantt
+    function renderGantt(year, compSel){
+      const tbl = $('#tblGantt'); tbl.innerHTML='';
+      const info = $('#ganttInfo'); info.classList.add('d-none');
+
+      const hasAct = rows.some(r=> r.actName);
+      const hasMes = rows.some(r=> monthIdx(r.mes)>=0);
+      if (!hasAct || !hasMes){ info.classList.remove('d-none'); return; }
+
+      const ys = (year==='todos')? ['2025','2026','2027'] : [year];
+      const filtered = rows.filter(r=>{
+        if (!ys.includes(r.y)) return false;
+        if (compSel && r.comp!==compSel) return false;
+        return !!r.actName && monthIdx(r.mes)>=0;
+      });
+
+      // Agrupar por actividad principal
+      const map = new Map();
+      filtered.forEach(r=>{
+        const key = r.actName.trim();
+        if(!map.has(key)) map.set(key, new Set());
+        map.get(key).add( monthIdx(r.mes) );
+      });
+
+      // cabeza
+      let thead = `<thead><tr><th style="min-width:280px">Actividad</th>${MONTHS.map(m=>`<th class="text-center">${m.slice(0,3)}</th>`).join('')}</tr></thead>`;
+      let tbody = '<tbody>';
+      for (const [act, set] of map.entries()){
+        tbody += `<tr><td>${act}</td>`+ MONTHS.map((_,i)=> `<td class="${set.has(i)?'hit':''}"></td>`).join('') +`</tr>`;
+      }
+      if (map.size===0){
+        tbody += `<tr><td colspan="13" class="text-center text-muted">Sin registros para el filtro aplicado.</td></tr>`;
+      }
+      tbody += '</tbody>';
+      tbl.innerHTML = thead + tbody;
+    }
+
+    /* ==================== NAV / INIT ==================== */
     function setupNav(){
       document.querySelectorAll('.sidebar .nav-link').forEach(a=>{
         a.addEventListener('click',e=>{
           e.preventDefault();
           document.querySelectorAll('.sidebar .nav-link').forEach(x=>x.classList.remove('active'));
+          a.addEventListener('blur',()=>a.classList.remove('active'));
           a.classList.add('active');
           const id=a.getAttribute('data-section');
           document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active'));
