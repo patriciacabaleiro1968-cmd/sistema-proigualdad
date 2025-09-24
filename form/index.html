@@ -35,7 +35,7 @@
           <!-- Año -->
           <div class="col-md-4">
             <label class="form-label required">Año de Gestión
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Seleccione el año de gestión sobre el que va a reportar."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Seleccione el año de gestión sobre el que va a reportar."></i>
             </label>
             <select id="anio" class="form-select" required>
               <option value="" selected disabled>Seleccione…</option>
@@ -49,7 +49,7 @@
           <!-- Mes -->
           <div class="col-md-4">
             <label class="form-label required">Mes
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Seleccione el mes del avance que está reportando."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Seleccione el mes del avance que está reportando."></i>
             </label>
             <select id="mes" class="form-select" required>
               <option value="" selected disabled>Seleccione…</option>
@@ -63,7 +63,7 @@
           <!-- Componente -->
           <div class="col-md-4">
             <label class="form-label required">Componente
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Elija el componente: C1, C2, C3 o Comunicación."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Elija el componente: C1, C2, C3 o Comunicación."></i>
             </label>
             <select id="componente" class="form-select" required>
               <option value="" selected disabled>Seleccione…</option>
@@ -78,7 +78,7 @@
           <!-- Objetivo dependiente -->
           <div class="col-md-6">
             <label class="form-label required">Objetivo del componente
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Seleccione el objetivo específico del componente al que corresponde la actividad."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Seleccione el objetivo específico del componente al que corresponde la actividad."></i>
             </label>
             <select id="objetivo" class="form-select" required disabled>
               <option value="" selected disabled>Seleccione…</option>
@@ -89,7 +89,7 @@
           <!-- Indicador dependiente -->
           <div class="col-md-6">
             <label class="form-label required">Indicador
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Seleccione el indicador donde impacta esta actividad."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Seleccione el indicador donde impacta esta actividad."></i>
             </label>
             <select id="indicador" class="form-select" required disabled>
               <option value="" selected disabled>Seleccione…</option>
@@ -100,7 +100,7 @@
           <!-- Descripción (límite de palabras) -->
           <div class="col-12">
             <label class="form-label required">Descripción breve de la actividad realizada
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Describa brevemente la actividad realizada y su resultado. Evite detalles administrativos."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Describa brevemente la actividad realizada y su resultado. Evite detalles administrativos."></i>
             </label>
             <textarea id="descripcion" class="form-control" rows="5" placeholder="Ej.: Taller participativo con 25 docentes de la DDE X; se trabajó en... (resultados, asistentes, hallazgos breves)" required></textarea>
             <div class="d-flex justify-content-between">
@@ -112,7 +112,7 @@
           <!-- Observaciones (opcional) -->
           <div class="col-12">
             <label class="form-label">Observaciones (opcional)
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Use esta casilla solo si requiere comentarios adicionales o sugerencias de mitigación. Ej.: Si la actividad se reprogramó por falta de respuesta de la DDE, sugiera una acción para reducir ese riesgo."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Use esta casilla solo si requiere comentarios adicionales o sugerencias de mitigación."></i>
             </label>
             <textarea id="observaciones" class="form-control" rows="3" placeholder="(Opcional)"></textarea>
           </div>
@@ -120,7 +120,7 @@
           <!-- Evidencia URL (opcional) -->
           <div class="col-12">
             <label class="form-label">Evidencia URL (opcional)
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" data-bs-title="Comparta aquí el enlace al repositorio o al documento de evidencia de la actividad."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Comparta aquí el enlace al repositorio o al documento de evidencia de la actividad."></i>
             </label>
             <input id="evidencia" type="url" class="form-control" placeholder="https://...">
             <div class="form-text">Debe iniciar con http:// o https://</div>
@@ -140,12 +140,15 @@
     <p class="text-muted small mb-5">ProIgualdad – Sistema de Monitoreo | Formulario</p>
   </div>
 
+  <!-- Bootstrap JS (incluye Popper, necesario para tooltips) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Pega aquí tu URL del Apps Script (termina en /exec)
-    const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycby9X4-8evChixYtN5JNzo5rVY9AWrwAA808ux9xgtg9_j_8TOb4bxqFFhPMaqcl1Svq/exec';
 
-    const MAX_WORDS = 300; // límite recomendado
+  <script>
+    // ========= CONFIG =========
+    const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycby9X4-8evChixYtN5JNzo5rVY9AWrwAA808ux9xgtg9_j_8TOb4bxqFFhPMaqcl1Svq/exec';  // <— REEMPLAZA por tu URL /exec
+    const MAX_WORDS = 300;
+
+    // Catálogo (puedes editar textos luego)
     const CATALOGO = {
       'C1: Educación': {
         '1.1 Igualdad en práctica docente': [
@@ -171,44 +174,54 @@
       }
     };
 
-    // ==== Helpers UI ====
+    // ========= HELPERS UI =========
     const $$ = s => document.querySelector(s);
     const showAlert = (type, html) => {
-      $$('#alertHolder').innerHTML = `
+      const holder = $$('#alertHolder');
+      holder.innerHTML = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
           ${html}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>`;
+      // auto-cerrar a los 5s
+      setTimeout(()=>{ holder.innerHTML=''; }, 5000);
     };
     const wordCount = t => (t.trim().length ? t.trim().split(/\s+/).length : 0);
 
-    const initTooltips = () => {
-      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-    };
+    function safeInitTooltips(){
+      try{
+        if (window.bootstrap && bootstrap.Tooltip){
+          document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+        }
+      }catch(err){ console.warn('Tooltips no inicializados:', err); }
+    }
 
-    // Listas dependientes
     function cargarObjetivos(comp){
-      const objetivos = Object.keys(CATALOGO[comp] || {});
       const sel = $$('#objetivo');
+      const objetivos = Object.keys(CATALOGO[comp] || {});
       sel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
       objetivos.forEach(o => sel.insertAdjacentHTML('beforeend', `<option>${o}</option>`));
       sel.disabled = objetivos.length === 0;
-      $$('#indicador').innerHTML = '<option value="" disabled selected>Seleccione…</option>';
-      $$('#indicador').disabled = true;
-    }
-    function cargarIndicadores(comp, obj){
-      const inds = (CATALOGO[comp] && CATALOGO[comp][obj]) ? CATALOGO[comp][obj] : [];
-      const sel = $$('#indicador');
-      sel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
-      inds.forEach(i => sel.insertAdjacentHTML('beforeend', `<option>${i}</option>`));
-      sel.disabled = inds.length === 0;
+
+      // limpiar indicadores
+      const indSel = $$('#indicador');
+      indSel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
+      indSel.disabled = true;
     }
 
-    // Envío con FormData (evita preflight CORS)
+    function cargarIndicadores(comp, obj){
+      const indSel = $$('#indicador');
+      const inds = (CATALOGO[comp] && CATALOGO[comp][obj]) ? CATALOGO[comp][obj] : [];
+      indSel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
+      inds.forEach(i => indSel.insertAdjacentHTML('beforeend', `<option>${i}</option>`));
+      indSel.disabled = inds.length === 0;
+    }
+
     async function enviar(e){
       e.preventDefault();
       const form = $$('#reporteForm');
 
+      // Validación
       const desc = $$('#descripcion').value.trim();
       const wc = wordCount(desc);
       const url = $$('#evidencia').value.trim();
@@ -217,7 +230,7 @@
       if (!form.checkValidity() || wc===0 || wc>MAX_WORDS || !urlOk){
         form.classList.add('was-validated');
         if (wc>MAX_WORDS) showAlert('warning', `La descripción supera el límite de <b>${MAX_WORDS}</b> palabras.`);
-        if (!urlOk) showAlert('warning', `La Evidencia URL debe comenzar con <code>http://</code> o <code>https://</code>.`);
+        if (!urlOk) showAlert('warning', `La Evidencia URL debe comenzar con http:// o https://.`);
         return;
       }
 
@@ -236,8 +249,55 @@
 
       try{
         const res = await fetch(ENDPOINT_URL, { method: 'POST', body: payload });
-        const data = await res.json().catch(()=>({status:'ok'}));
-        if (!res.ok || data.status!=='ok') throw new Error(data.message || 'Error de servidor');
+        // Apps Script debería devolver JSON; si no, tratamos como ok si la respuesta es "opaque"
+        let ok = res.ok, data = null;
+        try{ data = await res.json(); ok = ok && data?.status==='ok'; }catch(_){}
+        if (!ok) throw new Error(data?.message || 'Error de servidor');
         showAlert('success', '✅ ¡Reporte enviado! Muchas gracias.');
         form.reset();
         $$('#objetivo').disabled = true; $$('#indicador').disabled = true;
+        const cnt = $$('#descCounter'); cnt.textContent = `0 / ${MAX_WORDS} palabras`; cnt.classList.remove('over');
+        form.classList.remove('was-validated');
+      }catch(err){
+        console.error(err);
+        showAlert('danger', '❌ No se pudo enviar el reporte. Revise su conexión o intente nuevamente.');
+      }finally{
+        $$('#btnSpin').classList.add('d-none');
+        $$('#btnEnviar').disabled = false;
+      }
+    }
+
+    function init(){
+      // Tooltips y eventos
+      safeInitTooltips();
+
+      const cnt = $$('#descCounter');
+      $$('#descripcion').addEventListener('input', (e)=>{
+        const wc = wordCount(e.target.value);
+        cnt.textContent = `${wc} / ${MAX_WORDS} palabras`;
+        cnt.classList.toggle('over', wc>MAX_WORDS);
+      });
+
+      $$('#componente').addEventListener('change', e => {
+        cargarObjetivos(e.target.value);
+      });
+
+      $$('#objetivo').addEventListener('change', e => {
+        cargarIndicadores($$('#componente').value, e.target.value);
+      });
+
+      $$('#reporteForm').addEventListener('submit', enviar);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try { init(); }
+      catch(err){
+        console.error('Error inicializando el formulario:', err);
+        showAlert('danger', 'Ocurrió un error cargando el formulario. Actualice la página.');
+      }
+    });
+  </script>
+</body>
+</html>
+
+              
