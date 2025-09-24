@@ -461,22 +461,32 @@
     }
 
     function renderKPIs(year){
-      const ys = (year==='todos')? ['2025','2026','2027'] : [year];
-      const m11 = sumMeta(ys,'1.1'), a11 = sumActual(ys,'1.1');
-      const m31 = sumMeta(ys,'3.1'), a31 = sumActual(ys,'3.1');
-      $('#kpi11').textContent = `${a11}/${m11}`;
-      $('#kpi31').textContent = `${a31}/${m31}`;
-      $('#kpi31pct').textContent = `${pct(a31,m31)}% de avance`;
-      let MG=0, AG=0; Object.keys(METAS_FIJAS).forEach(p=>{ MG+=sumMeta(ys,p); AG+=sumActual(ys,p); });
-      const g = pct(AG,MG);
-      $('#barGlobal').style.width = `${g}%`;
-      $('#txtGlobal').textContent = `Progreso general: ${g}%`;
-      const ya = y=>{ let m=0,a=0; Object.keys(METAS_FIJAS).forEach(p=>{m+=sumMeta([y],p); a+=sumActual([y],p)}); return pct(a,m); };
-      $('#p2025').textContent = `${ya('2025')}%`;
-      $('#p2026').textContent = `${ya('2026')}%`;
-      $('#p2027').textContent = `${ya('2027')}%`;
-      $('#pGlobal').textContent = `${g}%`;
-    }
+  // Años seleccionados (uno o todos)
+  const ys = (year === 'todos') ? ['2025','2026','2027'] : [year];
+
+  // % por año individual (para las tarjetas 2025, 2026, 2027)
+  const ya = y => {
+    let m = 0, a = 0;
+    Object.keys(METAS_FIJAS).forEach(p => { m += sumMeta([y], p); a += sumActual([y], p); });
+    return pct(a, m);
+  };
+
+  // % global para rango seleccionado
+  let MG = 0, AG = 0;
+  Object.keys(METAS_FIJAS).forEach(p => { MG += sumMeta(ys, p); AG += sumActual(ys, p); });
+  const g = pct(AG, MG);
+
+  // Escribe SOLO en elementos que sí existen en el HTML actual
+  const e2025 = document.querySelector('#p2025');
+  const e2026 = document.querySelector('#p2026');
+  const e2027 = document.querySelector('#p2027');
+  const eGlob  = document.querySelector('#pGlobal');
+
+  if (e2025) e2025.textContent = `${ya('2025')}%`;
+  if (e2026) e2026.textContent = `${ya('2026')}%`;
+  if (e2027) e2027.textContent = `${ya('2027')}%`;
+  if (eGlob)  eGlob.textContent  = `${g}%`;
+}
 
     function renderDonut(year){
       const ys = (year==='todos')? ['2025','2026','2027'] : [year];
