@@ -1,136 +1,78 @@
-// functions/api/data.js
-// Endpoint de lectura para el dashboard: devuelve datos crudos + agregados.
-// Filtros por query string: ?anio=2025&componente=C1&mes=Marzo
-
-export async function onRequestGet({ env, request }) {
+export const onRequestGet = async ({ request, env }) => {
   try {
-    const SUPABASE_URL = env.SUPABASE_URL;
-    const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_KEY; // service_role key
-
+    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = env;
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return json({ ok: false, error: 'Faltan variables de entorno' }, 500);
+      return json({ ok: false, error: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en Environment variables' }, 500);
     }
 
-    const urlReq = new URL(request.url);
-    const anio = urlReq.searchParams.get('anio')?.trim() || null;         // "2025" | null
-    const componente = urlReq.searchParams.get('componente')?.trim() || null; // "C1" | null
-    const mes = urlReq.searchParams.get('mes')?.trim() || null;           // "Enero" | null
+    const url = new URL(request.url);
+    const anio = url.searchParams.get('anio');        // ej: 2025
+    const mes  = url.searchParams.get('mes');         // ej: '01'
+    const comp = url.searchParams.get('componente');  // ej: 'C1'
+    const agg  = url.searchParams.get('agg');         // 'donut' | 'barras' | 'stacked' | null
 
-    // ---- Validación básica de filtros ----
-    const MONTHS = [
-      'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
-    ];
-    if (anio && !['2025','2026','2027'].includes(anio)) {
-      return json({ ok:false, error:'Parámetro anio inválido (use 2025/2026/2027)' }, 400);
+    // Agregados por RPC
+    if (agg === 'donut') {
+      const data = await callRpc(SUPABASE_URL, SUPABASE_SERVICE_KEY, 'ef_donut_comp', { p_anio: anio ? Number(anio) : null });
+      return json({ ok:true, data });
     }
-    if (componente && !['C1','C2','C3'].includes(componente.toUpperCase())) {
-      return json({ ok:false, error:'Parámetro componente inválido (use C1/C2/C3)' }, 400);
+    if (agg === 'barras') {
+      const data = await callRpc(SUPABASE_URL, SUPABASE_SERVICE_KEY, 'ef_barras_por_actividad', { p_anio: anio ? Number(anio) : null });
+      return json({ ok:true, data });
     }
-    if (mes && !MONTHS.includes(capitalize(mes))) {
-      return json({ ok:false, error:'Parámetro mes inválido (use Enero..Diciembre)' }, 400);
+    if (agg === 'stacked') {
+      const data = await callRpc(SUPABASE_URL, SUPABASE_SERVICE_KEY, 'ef_stacked_mes_comp', { p_anio: anio ? Number(anio) : null });
+      return json({ ok:true, data });
     }
 
-    // ---- Construir query de PostgREST ----
-    const qp = new URLSearchParams();
-    qp.set('select', [
-      'created_at',
-      'anio_gestion',
-      'mes',
-      'componente',
-      'objetivo',
-      'indicador',
-      'descripcion',
-      'observaciones',
-      'evidencia_url'
-    ].join(','));
-    if (anio) qp.set('anio_gestion', `eq.${Number(anio)}`);
-    if (componente) qp.set('componente', `eq.${componente.toUpperCase()}`);
-    if (mes) qp.set('mes', `eq.${capitalize(mes)}`);
-    qp.set('order', 'created_at.desc');
-    qp.set('limit', '10000');
+    // Datos crudos (para tablas/export)
+    const params = new URLSearchParams();
+    params.set('select', '*');
+    if (anio) params.set('anio_gestion', `eq.${Number(anio)}`);
+    if (mes)  params.set('mes', `eq.${mes}`);
+    if (comp) params.set('componente', `eq.${comp}`);
 
-    const restURL = `${SUPABASE_URL.replace(/\/+$/,'')}/rest/v1/entradas_form?${qp.toString()}`;
-    const resp = await fetch(restURL, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/entradas_form?${params.toString()}`, {
       headers: {
         'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Accept-Profile': 'public'
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
       }
     });
 
     if (!resp.ok) {
-      const txt = await resp.text();
-      return json({ ok:false, error:`Supabase ${resp.status}: ${txt}` }, 500);
+      const err = await safeJson(resp);
+      return json({ ok:false, error: err?.message || `Error Supabase (${resp.status})` }, 500);
     }
 
-    const rows = await resp.json();
-
-    // ====== Agregados ======
-    const byComponente = aggregateCount(rows, r => r.componente);
-    const byIndicador  = aggregateCount(rows, r => `${r.componente}||${r.indicador}`)
-      .map(({ key, total }) => {
-        const [comp, ind] = key.split('||');
-        return { componente: comp, indicador: ind, total };
-      });
-    const byMes        = aggregateCount(rows, r => `${r.componente}||${r.mes}`)
-      .map(({ key, total }) => {
-        const [comp, m] = key.split('||');
-        return { componente: comp, mes: m, total };
-      })
-      .sort((a,b) => {
-        const mi = MONTHS.indexOf(a.mes) - MONTHS.indexOf(b.mes);
-        return mi !== 0 ? mi : a.componente.localeCompare(b.componente);
-      });
-    const byAnioComp   = aggregateCount(rows, r => `${r.anio_gestion}||${r.componente}`)
-      .map(({ key, total }) => {
-        const [a, c] = key.split('||');
-        return { anio_gestion: Number(a), componente: c, total };
-      })
-      .sort((a,b) => (a.anio_gestion - b.anio_gestion) || a.componente.localeCompare(b.componente));
-
-    return json({
-      ok: true,
-      filters: {
-        anio: anio ? Number(anio) : null,
-        componente: componente ? componente.toUpperCase() : null,
-        mes: mes ? capitalize(mes) : null
-      },
-      counts: { total: rows.length },
-      data: rows,
-      aggregates: {
-        byComponente,               // [{ componente, total }]
-        byIndicador,                // [{ componente, indicador, total }]
-        byMes,                      // [{ componente, mes, total }]
-        byAnioComponente: byAnioComp// [{ anio_gestion, componente, total }]
-      },
-      meta: { schemaVersion: 1 }
-    }, 200, { 'Cache-Control': 'no-store' });
-
-  } catch (err) {
-    return json({ ok:false, error: String(err) }, 500);
+    const data = await resp.json();
+    return json({ ok:true, data });
+  } catch (e) {
+    return json({ ok:false, error: e.message || 'Error inesperado' }, 500);
   }
+};
+
+// Helpers
+async function callRpc(SUPABASE_URL, SERVICE_KEY, fnName, body) {
+  const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SERVICE_KEY,
+      'Authorization': `Bearer ${SERVICE_KEY}`
+    },
+    body: JSON.stringify(body || {})
+  });
+  if (!resp.ok) {
+    const err = await safeJson(resp);
+    throw new Error(err?.message || `Error RPC ${fnName} (${resp.status})`);
+  }
+  return await resp.json();
 }
 
-/* ========== Helpers ========== */
-function json(body, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(body), {
+function json(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...extraHeaders }
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
   });
 }
-function capitalize(s) {
-  if (!s) return s;
-  const t = String(s).toLowerCase();
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-function aggregateCount(list, keyFn) {
-  const map = new Map();
-  for (const r of list) {
-    const key = keyFn(r);
-    map.set(key, (map.get(key) || 0) + 1);
-  }
-  return Array.from(map.entries())
-    .map(([key, total]) => (String(key).includes('||') ? ({ key, total }) : ({ componente: key, total })))
-    .sort((a,b) => b.total - a.total);
-}
+async function safeJson(resp) { try { return await resp.json(); } catch { return null; } }
