@@ -193,18 +193,23 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
+    // ***** nitidez de charts en el PDF (y pantalla) *****
+    if (window.Chart && Chart.defaults) {
+      Chart.defaults.devicePixelRatio = 2; // 2x para imágenes más nítidas
+    }
+
     // ========= CONFIG =========
     const API_BASE = '/api/data';
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const PALETTE = ['#4a3c8d','#e5438a','#41c4b3','#6c757d','#28a745','#17a2b8','#fd7e14','#20c997'];
 
     let chartDonut, chartBarIndicators, chartStackedMonths;
-    let lastJson = null; // se usa para exportar
+    let lastJson = null; // para exportar
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
 
-      // navegación
+      // navegación entre secciones
       document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
@@ -221,7 +226,7 @@
       document.getElementById('btnRefrescar').addEventListener('click', cargarDesdeAPI);
 
       // export
-      document.getElementById('btnPdf').addEventListener('click', exportarPDF);
+      document.getElementById('btnPdf').addEventListener('click', () => exportarPDF());
       document.getElementById('btnExcel').addEventListener('click', exportarExcel);
 
       // primera carga
@@ -306,9 +311,8 @@
       empty.classList.toggle('d-none', labels.length>0);
 
       if (chartDonut) chartDonut.destroy();
-      if (labels.length === 0){
-        return;
-      }
+      if (labels.length === 0){ return; }
+
       chartDonut = new Chart(ctx, {
         type: 'doughnut',
         data: { labels, datasets:[{ data: vals, backgroundColor: labels.map((_,i)=> PALETTE[i%PALETTE.length]), borderWidth:0 }]},
@@ -395,28 +399,117 @@
       });
     }
 
-    // ====== Exportar ======
-    function exportarPDF(){
+    // ====== Exportar: incluye gráficos como imágenes ======
+
+    // Helper: activa temporalmente la sección que contiene un canvas para poder "pintarlo"
+    async function grabChartImage(canvasId, sectionId){
+      const current = document.querySelector('.dashboard-section.active');
+      const targetSection = document.getElementById(sectionId);
+      let switched = false;
+
+      if (targetSection && !targetSection.classList.contains('active')) {
+        if (current) current.classList.remove('active');
+        targetSection.classList.add('active');
+        switched = true;
+        // deja que el navegador pinte
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      const canvas = document.getElementById(canvasId);
+      let result = null;
+      if (canvas && canvas.width && canvas.height) {
+        result = {
+          dataUrl: canvas.toDataURL('image/png'),
+          w: canvas.width,
+          h: canvas.height
+        };
+      }
+
+      if (switched) {
+        targetSection.classList.remove('active');
+        if (current) current.classList.add('active');
+        await new Promise(r => setTimeout(r, 0));
+      }
+      return result;
+    }
+
+    async function exportarPDF(){
       if (!lastJson){ alert('No hay datos para exportar.'); return; }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit:'pt', format:'a4' });
-      const { filters, aggregates } = lastJson;
-      const titulo = 'Reporte ProIgualdad – Dashboard';
-      doc.setFontSize(16); doc.text(titulo, 40, 40);
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 40;
+      const maxW = pageW - margin*2;
+
+      // Encabezado
+      doc.setFontSize(16);
+      doc.text('Reporte ProIgualdad – Dashboard', margin, 42);
       doc.setFontSize(10);
-      doc.text(`Fecha: ${new Date().toLocaleString('es-ES')}`, 40, 58);
-      doc.text(`Filtros: Año=${filters.anio ?? 'Todos'} · Componente=${filters.componente ?? 'Todos'}`, 40, 74);
+      doc.text(`Fecha: ${new Date().toLocaleString('es-ES')}`, margin, 58);
+      doc.text(`Filtros: Año=${lastJson?.filters?.anio ?? 'Todos'} · Componente=${lastJson?.filters?.componente ?? 'Todos'}`, margin, 72);
 
-      // Tabla consolidada Año–Componente
-      const head = [['Año','Componente','Total']];
-      const body = (aggregates.byAnioComponente||[]).map(r => [r.anio_gestion, r.componente, r.total]);
-      doc.autoTable({ startY: 90, head, body, styles:{ fontSize:10 } });
+      let y = 90;
 
-      // Top indicadores
-      const top = (aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,10);
-      const head2 = [['Componente','Indicador','Total']];
-      const body2 = top.map(r => [r.componente, String(r.indicador).slice(0,120), r.total]);
-      doc.autoTable({ startY: doc.lastAutoTable.finalY + 20, head: head2, body: body2, styles:{ fontSize:9 } });
+      // Gráficos: donut, indicadores, cronograma (desde canvas)
+      const charts = [
+        { id: 'componentChart',  section: 'resumen',     title: 'Distribución por Componente' },
+        { id: 'indicatorBar',    section: 'indicadores', title: 'Top 10 indicadores por cantidad de actividades' },
+        { id: 'monthStacked',    section: 'cronograma',  title: 'Actividades por mes (apilado por componente)' }
+      ];
+
+      for (const ch of charts){
+        const img = await grabChartImage(ch.id, ch.section);
+        if (!img) continue;
+
+        doc.setFontSize(12);
+        doc.text(ch.title, margin, y);
+        y += 14;
+
+        const ratio = img.h / img.w;
+        const targetW = maxW;
+        const targetH = targetW * ratio;
+
+        if (y + targetH > pageH - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.addImage(img.dataUrl, 'PNG', margin, y, targetW, targetH);
+        y += targetH + 16;
+      }
+
+      // Tablas: consolidado y top indicadores
+      const headCons = [['Año','Componente','Total']];
+      const bodyCons = (lastJson.aggregates.byAnioComponente||[]).map(r => [r.anio_gestion, r.componente, r.total]);
+
+      if (y > pageH - margin - 40) { doc.addPage(); y = margin; }
+      doc.setFontSize(12);
+      doc.text('Consolidado por Año y Componente', margin, y);
+      y += 6;
+
+      doc.autoTable({
+        startY: y + 10,
+        head: headCons,
+        body: bodyCons,
+        styles:{ fontSize:10, cellPadding:3 },
+        margin:{ left: margin, right: margin }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+
+      const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,10);
+      const headInd = [['Componente','Indicador','Total']];
+      const bodyInd = top.map(r => [r.componente, String(r.indicador).slice(0,120), r.total]);
+
+      if (y > pageH - margin - 40) { doc.addPage(); y = margin; }
+      doc.text('Top 10 Indicadores', margin, y);
+      doc.autoTable({
+        startY: y + 10,
+        head: headInd,
+        body: bodyInd,
+        styles:{ fontSize:9, cellPadding:3 },
+        margin:{ left: margin, right: margin }
+      });
 
       doc.save('proigualdad-dashboard.pdf');
     }
