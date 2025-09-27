@@ -1,141 +1,67 @@
-// functions/api/submit.js
-// Cloudflare Pages Function: recibe el formulario y guarda en Supabase vía REST.
-// Requiere Secrets en Pages: SUPABASE_URL y SUPABASE_SERVICE_KEY
-
-export async function onRequestPost({ request, env }) {
+export const onRequestPost = async ({ request, env }) => {
   try {
-    const SUPABASE_URL = env.SUPABASE_URL;                 // p.ej. https://xxxx.supabase.co
-    const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_KEY; // service_role key
-
+    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = env;
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return json({ ok: false, error: 'Faltan variables de entorno' }, 500);
+      return json({ ok: false, error: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en Environment variables' }, 500);
     }
 
-    // ---- Lee cuerpo (espera JSON) ----
-    let payload;
-    const ct = request.headers.get('content-type') || '';
-    if (ct.includes('application/json')) {
-      payload = await request.json();
-    } else {
-      // Fallback: si por error llega form-data/urlencoded, lo convertimos
-      const form = await request.formData().catch(() => null);
-      if (!form) return json({ ok: false, error: 'Content-Type no soportado' }, 400);
-      payload = Object.fromEntries(form.entries());
+    const body = await request.json().catch(() => ({}));
+    const { anio_gestion, mes, componente, url, id_actividad } = body || {};
+
+    // Validaciones simples
+    const aniosOk = [2025, 2026, 2027];
+    const mesesOk = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+    const compOk  = ['C1','C2','C3'];
+
+    if (!aniosOk.includes(Number(anio_gestion))) {
+      return json({ ok:false, error:'anio_gestion debe ser 2025, 2026 o 2027' }, 400);
+    }
+    if (!mesesOk.includes(String(mes))) {
+      return json({ ok:false, error:'mes debe ser 01..12' }, 400);
+    }
+    if (!compOk.includes(String(componente))) {
+      return json({ ok:false, error:'componente debe ser C1/C2/C3' }, 400);
+    }
+    if (url && !/^https?:\/\//i.test(url)) {
+      return json({ ok:false, error:'URL debe iniciar con http:// o https://' }, 400);
     }
 
-    // ---- Helpers de limpieza ----
-    const clean = (v) =>
-      typeof v === 'string' ? v.replace(/\u00A0/g, ' ').trim() : v;
-    const MONTHS = [
-      'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
-    ];
-
-    // ---- Validación mínima de campos obligatorios ----
-    const required = ['Anio_Gestion','Mes','Componente','Objetivo','Indicador','Descripcion'];
-    for (const k of required) {
-      if (!payload[k] || String(payload[k]).trim() === '') {
-        return json({ ok:false, error:`Falta campo: ${k}` }, 400);
-      }
-    }
-
-    // ---- Normalizaciones ----
-    // Año
-    const anio = Number(clean(payload.Anio_Gestion));
-    if (![2025, 2026, 2027].includes(anio)) {
-      return json({ ok:false, error:'Anio_Gestion inválido' }, 400);
-    }
-
-    // Mes
-    const mes = clean(payload.Mes);
-    if (!MONTHS.includes(mes)) {
-      return json({ ok:false, error:'Mes inválido' }, 400);
-    }
-
-    // Componente: aceptar C1/C2/C3 o textos largos que empiecen con "COMPONENTE 1/2/3"
-    let componente = clean(payload.Componente);
-    if (/^COMPONENTE\s*1/i.test(componente)) componente = 'C1';
-    else if (/^COMPONENTE\s*2/i.test(componente)) componente = 'C2';
-    else if (/^COMPONENTE\s*3/i.test(componente)) componente = 'C3';
-    componente = componente.toUpperCase();
-    if (!['C1','C2','C3'].includes(componente)) {
-      return json({ ok:false, error:'Componente inválido (debe ser C1/C2/C3)' }, 400);
-    }
-
-    // Objetivo / Indicador / Descripción / Observaciones
-    const objetivo      = clean(payload.Objetivo);
-    const indicador     = clean(payload.Indicador);
-    const descripcion   = clean(payload.Descripcion);
-    const observaciones = clean(payload.Observaciones || '');
-
-    if (!descripcion) {
-      return json({ ok:false, error:'Descripcion vacía' }, 400);
-    }
-
-    // Evidencia URL: limpiar NBSP/espacios; forzar https:// si es dominio; NULL si no parece URL
-    let evidencia_url = clean(payload.Evidencia_URL || '');
-    if (evidencia_url) {
-      if (!/^https?:\/\//i.test(evidencia_url)) {
-        if (/^(www\.)?[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(evidencia_url)) {
-          evidencia_url = 'https://' + evidencia_url;
-        } else {
-          evidencia_url = null; // evita violar el CHECK en BD
-        }
-      }
-    } else {
-      evidencia_url = null;
-    }
-
-    // Enriquecer con cabeceras
-    const ip = request.headers.get('CF-Connecting-IP') || '';
-    const ua = request.headers.get('User-Agent') || '';
-
-    // ---- Mapeo final a columnas de la tabla ----
-    const row = {
-      anio_gestion: anio,
-      mes,
-      componente,
-      objetivo,
-      indicador,
-      descripcion,
-      observaciones,
-      evidencia_url,
-      user_agent: ua,
-      ip
+    const insertObj = {
+      anio_gestion: Number(anio_gestion),
+      mes: String(mes),
+      componente: String(componente),
+      url: url || null
     };
+    if (id_actividad) insertObj.id_actividad = id_actividad; // opcional
 
-    // ---- Insert en Supabase (REST / PostgREST) ----
-    const url = `${SUPABASE_URL.replace(/\/+$/,'')}/rest/v1/entradas_form`;
-    const resp = await fetch(url, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/entradas_form`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
         'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Prefer': 'return=representation'
       },
-      body: JSON.stringify(row)
+      body: JSON.stringify(insertObj)
     });
 
     if (!resp.ok) {
-      const txt = await resp.text();
-      return json({ ok:false, error:`Supabase ${resp.status}: ${txt}` }, 500);
+      const err = await safeJson(resp);
+      return json({ ok:false, error: err?.message || `Error Supabase (${resp.status})` }, 500);
     }
 
     const data = await resp.json();
-    return json({ ok:true, data }, 201);
-
-  } catch (err) {
-    return json({ ok:false, error: String(err) }, 500);
+    return json({ ok:true, data: Array.isArray(data) ? data[0] : data }, 200);
+  } catch (e) {
+    return json({ ok:false, error: e.message || 'Error inesperado' }, 500);
   }
-}
+};
 
-// Helper para respuestas JSON
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
+// Helpers
+function json(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
   });
 }
-
-   
+async function safeJson(resp) { try { return await resp.json(); } catch { return null; } }
