@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- jsPDF + AutoTable + XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -190,10 +190,11 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- Lógica del Dashboard -->
   <script>
-    // ***** nitidez de charts *****
+    // Alta nitidez para gráficos exportados
     if (window.Chart && Chart.defaults) {
-      Chart.defaults.devicePixelRatio = 2; // 2x para imágenes más nítidas
+      Chart.defaults.devicePixelRatio = 2;
     }
 
     // ========= CONFIG =========
@@ -202,29 +203,38 @@
     const PALETTE = ['#4a3c8d','#e5438a','#41c4b3','#6c757d','#28a745','#17a2b8','#fd7e14','#20c997'];
 
     let chartDonut, chartBarIndicators, chartStackedMonths;
-    let lastJson = null; // para exportar
+    let lastJson = null; // estructura unificada para export
 
-    // ============= Helpers de texto (WRAP) =============
-    function wrapWords(text, maxCharsPerLine = 42){
+    // ========= HELPERS =========
+    function showLoading(show){ document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+    function wrapWords(text, maxCharsPerLine = 48){
       if (!text) return [''];
       const words = String(text).split(/\s+/);
-      const lines = [];
-      let line = '';
+      const lines = []; let line = '';
       for (const w of words){
-        if ((line + ' ' + w).trim().length <= maxCharsPerLine){
-          line = (line ? line + ' ' : '') + w;
-        } else {
-          if (line) lines.push(line);
-          line = w;
-        }
+        if ((line + ' ' + w).trim().length <= maxCharsPerLine) line = (line ? line + ' ' : '') + w;
+        else { if (line) lines.push(line); line = w; }
       }
       if (line) lines.push(line);
       return lines;
     }
+    async function fetchJSON(url){
+      const resp = await fetch(url, { headers:{ 'Accept':'application/json' }, cache: 'no-store' });
+      if(!resp.ok) throw new Error(\`HTTP \${resp.status}\`);
+      const json = await resp.json();
+      if(json && json.ok === true && 'data' in json) return json.data; // formato de /api/data
+      return json;
+    }
+    function filtrosActuales(){
+      const y = document.getElementById('yearFilter').value;            // 2025 | 2026 | 2027 | todos
+      const c = document.getElementById('componenteFilter').value;      // '' | C1 | C2 | C3
+      return { anio: y !== 'todos' ? Number(y) : null, componente: c || null };
+    }
 
-    // ============= INIT =============
+    // ========= INIT =========
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+      document.getElementById('currentDate').textContent =
+        new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
 
       // navegación entre secciones
       document.querySelectorAll('.nav-link').forEach(link => {
@@ -243,45 +253,82 @@
       document.getElementById('btnRefrescar').addEventListener('click', cargarDesdeAPI);
 
       // export
-      document.getElementById('btnPdf').addEventListener('click', () => exportarPDF());
-      document.getElementById('btnExcel').addEventListener('click', exportarExcel);
+      document.getElementById('btnPdf').addEventListener('click', (e) => { e.preventDefault(); exportarPDF(); });
+      document.getElementById('btnExcel').addEventListener('click', (e) => { e.preventDefault(); exportarExcel(); });
 
       // primera carga
       cargarDesdeAPI();
     });
 
-    function showLoading(show){ document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
-
-    function filtrosActuales(){
-      const y = document.getElementById('yearFilter').value;
-      const c = document.getElementById('componenteFilter').value;
-      return { anio: y !== 'todos' ? y : null, componente: c || null };
-    }
-
+    // ========= CARGA DESDE API (monta agregados que usa la UI) =========
     async function cargarDesdeAPI(){
       showLoading(true);
       try{
         const { anio, componente } = filtrosActuales();
-        const qs = new URLSearchParams();
-        if (anio) qs.set('anio', anio);
-        if (componente) qs.set('componente', componente);
 
-        const res = await fetch(`${API_BASE}${qs.toString() ? `?${qs}` : ''}`, { cache: 'no-store' });
-        const json = await res.json();
-        lastJson = json;
+        // DONUT
+        const uDonut = new URL(API_BASE, location.origin);
+        uDonut.searchParams.set('agg','donut');
+        if (anio) uDonut.searchParams.set('anio', anio);
+        let byComponente = await fetchJSON(uDonut.toString()); // [{componente:'C1', total:n}, ...]
+        if (componente) byComponente = byComponente.filter(d => d.componente === componente);
+
+        // STACKED (mes x componente)
+        const uStacked = new URL(API_BASE, location.origin);
+        uStacked.searchParams.set('agg','stacked');
+        if (anio) uStacked.searchParams.set('anio', anio);
+        let byMesRaw = await fetchJSON(uStacked.toString()); // [{mes:'01', componente:'C1', total:n}, ...]
+        if (componente) byMesRaw = byMesRaw.filter(d => d.componente === componente);
+        const byMes = byMesRaw.map(d => ({ mes: MONTHS[Number(String(d.mes).padStart(2,'0')) - 1], componente: d.componente, total: d.total }));
+
+        // CRUDOS
+        const uRaw = new URL(API_BASE, location.origin);
+        if (anio) uRaw.searchParams.set('anio', anio);
+        if (componente) uRaw.searchParams.set('componente', componente);
+        const dataRows = await fetchJSON(uRaw.toString());  // array de filas
+
+        // byAnioComponente
+        const mapAC = new Map();
+        for (const r of dataRows) {
+          const key = \`\${r.anio_gestion}||\${r.componente}\`;
+          mapAC.set(key, (mapAC.get(key) || 0) + 1);
+        }
+        const byAnioComponente = Array.from(mapAC.entries()).map(([k, total]) => {
+          const [anio_gestion, componente] = k.split('||');
+          return { anio_gestion: Number(anio_gestion), componente, total };
+        }).sort((a,b)=> a.anio_gestion - b.anio_gestion || a.componente.localeCompare(b.componente));
+
+        // byIndicador
+        const mapInd = new Map();
+        for (const r of dataRows) {
+          const comp = r.componente || 'N/D';
+          const ind  = r.indicador || 'Sin indicador';
+          const key  = \`\${comp}||\${ind}\`;
+          mapInd.set(key, (mapInd.get(key) || 0) + 1);
+        }
+        const byIndicador = Array.from(mapInd.entries()).map(([k, total]) => {
+          const [comp, ind] = k.split('||');
+          return { componente: comp, indicador: ind, total };
+        });
+
+        // Estructura unificada
+        lastJson = {
+          ok: true,
+          filters: { anio: anio ?? 'Todos', componente: componente || 'Todos' },
+          data: dataRows,
+          aggregates: { byComponente, byAnioComponente, byIndicador, byMes }
+        };
 
         document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
-
-        // chip de filtros
         document.getElementById('filtrosChip').textContent =
-          `Año: ${anio ?? 'Todos'} · Componente: ${componente || 'Todos'}`;
+          \`Año: \${lastJson.filters.anio} · Componente: \${lastJson.filters.componente}\`;
 
         // Render
-        renderKPIs(json.aggregates.byComponente);
-        renderDonut(json.aggregates.byComponente);
-        renderTablaConsolidado(json.aggregates.byAnioComponente);
-        renderIndicators(json.aggregates.byIndicador);
-        renderStackedMonths(json.aggregates.byMes);
+        renderKPIs(lastJson.aggregates.byComponente);
+        renderDonut(lastJson.aggregates.byComponente);
+        renderTablaConsolidado(lastJson.aggregates.byAnioComponente);
+        renderIndicators(lastJson.aggregates.byIndicador);
+        renderStackedMonths(lastJson.aggregates.byMes);
 
       }catch(err){
         console.error(err);
@@ -291,7 +338,7 @@
       }
     }
 
-    // ====== Renderizadores ======
+    // ========= RENDERIZADORES =========
     function renderKPIs(byComponente){
       const row = document.getElementById('kpisRow');
       row.innerHTML = '';
@@ -323,13 +370,10 @@
       const vals   = (byComponente||[]).map(d => d.total || 0);
       const ctx = document.getElementById('componentChart')?.getContext('2d');
       const empty = document.getElementById('donutEmpty');
-
       if (!ctx) return;
       empty.classList.toggle('d-none', labels.length>0);
-
       if (chartDonut) chartDonut.destroy();
-      if (labels.length === 0){ return; }
-
+      if (labels.length === 0) return;
       chartDonut = new Chart(ctx, {
         type: 'doughnut',
         data: { labels, datasets:[{ data: vals, backgroundColor: labels.map((_,i)=> PALETTE[i%PALETTE.length]), borderWidth:0 }]},
@@ -340,56 +384,33 @@
       });
     }
 
-    // === INDICADORES: barras horizontales con labels envueltos (multilínea) ===
     function renderIndicators(byIndicador){
       const items = (byIndicador||[])
-        .map(d => ({
-          full: `${d.componente} – ${d.indicador}`,
-          total: d.total
-        }))
+        .map(d => ({ full: `${d.componente} – ${d.indicador}`, total: d.total }))
         .sort((a,b)=> b.total-a.total)
         .slice(0,10)
-        .reverse(); // mayor al final -> aparece abajo
-
-      const fullLabels   = items.map(x => x.full);
-      const wrapped      = items.map(x => wrapWords(x.full, 48)); // <= Ajusta ancho por línea
-      const values       = items.map(x => x.total);
-
+        .reverse();
+      const fullLabels = items.map(x => x.full);
+      const wrapped    = items.map(x => wrapWords(x.full, 48));
+      const values     = items.map(x => x.total);
       const ctx = document.getElementById('indicatorBar')?.getContext('2d');
       const empty = document.getElementById('indEmpty');
       if (!ctx) return;
-
       empty.classList.toggle('d-none', items.length>0);
       if (chartBarIndicators) chartBarIndicators.destroy();
       if (items.length===0) return;
-
       chartBarIndicators = new Chart(ctx,{
         type:'bar',
-        data:{ 
-          // Aquí pasamos arrays de líneas -> Chart.js dibuja multiline tick labels
-          labels: wrapped,
-          datasets:[{ data: values, backgroundColor: wrapped.map((_,i)=> PALETTE[i%PALETTE.length]) }]
-        },
+        data:{ labels: wrapped, datasets:[{ data: values, backgroundColor: wrapped.map((_,i)=> PALETTE[i%PALETTE.length]) }]},
         options:{
-          indexAxis:'y',
-          responsive:true,
-          layout: { padding: { left: 8, right: 16 } },
-          scales:{
-            x:{ beginAtZero:true, ticks:{ precision:0 } },
-            y:{ ticks:{ font:{ size: 10 } } } // fuente más pequeña mejora legibilidad
-          },
+          indexAxis:'y', responsive:true,
+          scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } }, y:{ ticks:{ font:{ size: 10 } } } },
           plugins:{
             legend:{ display:false },
-            tooltip:{ 
-              callbacks:{
-                // Título del tooltip: etiqueta completa sin cortar
-                title: items => {
-                  const i = items[0].dataIndex;
-                  return fullLabels[i];
-                },
-                label: ctx => ` ${ctx.raw} actividad(es)`
-              }
-            }
+            tooltip:{ callbacks:{
+              title: items => fullLabels[items[0].dataIndex],
+              label: ctx => ` ${ctx.raw} actividad(es)`
+            }}
           }
         }
       });
@@ -403,21 +424,14 @@
           matrix[item.mes][item.componente] = item.total;
         }
       });
-      const datasets = comps.map((c,idx)=> ({
-        label:c, data: MONTHS.map(m => matrix[m][c]),
-        backgroundColor: PALETTE[idx%PALETTE.length], stack:'meses'
-      }));
-
+      const datasets = comps.map((c,idx)=> ({ label:c, data: MONTHS.map(m => matrix[m][c]), backgroundColor: PALETTE[idx%PALETTE.length], stack:'meses' }));
       const ctx = document.getElementById('monthStacked')?.getContext('2d');
       const empty = document.getElementById('cronEmpty');
       if (!ctx) return;
-
       const total = datasets.reduce((s,ds)=> s + ds.data.reduce((a,b)=>a+b,0), 0);
       empty.classList.toggle('d-none', total>0);
-
       if (chartStackedMonths) chartStackedMonths.destroy();
       if (total===0) return;
-
       chartStackedMonths = new Chart(ctx,{
         type:'bar',
         data:{ labels: MONTHS, datasets },
@@ -445,9 +459,7 @@
       });
     }
 
-    // ====== Exportar: incluye gráficos como imágenes y tablas con wrap ======
-
-    // Helper: activa temporalmente la sección que contiene un canvas para poder "pintarlo"
+    // ========= EXPORTAR =========
     async function grabChartImage(canvasId, sectionId){
       const current = document.querySelector('.dashboard-section.active');
       const targetSection = document.getElementById(sectionId);
@@ -457,18 +469,13 @@
         if (current) current.classList.remove('active');
         targetSection.classList.add('active');
         switched = true;
-        // deja que el navegador pinte
         await new Promise(r => setTimeout(r, 120));
       }
 
       const canvas = document.getElementById(canvasId);
       let result = null;
       if (canvas && canvas.width && canvas.height) {
-        result = {
-          dataUrl: canvas.toDataURL('image/png'),
-          w: canvas.width,
-          h: canvas.height
-        };
+        result = { dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height };
       }
 
       if (switched) {
@@ -483,22 +490,18 @@
       if (!lastJson){ alert('No hay datos para exportar.'); return; }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit:'pt', format:'a4' });
-
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const margin = 40;
-      const maxW = pageW - margin*2;
+      const margin = 40, maxW = pageW - margin*2;
 
       // Encabezado
       doc.setFontSize(16);
       doc.text('Reporte ProIgualdad – Dashboard', margin, 42);
       doc.setFontSize(10);
       doc.text(`Fecha: ${new Date().toLocaleString('es-ES')}`, margin, 58);
-      doc.text(`Filtros: Año=${lastJson?.filters?.anio ?? 'Todos'} · Componente=${lastJson?.filters?.componente ?? 'Todos'}`, margin, 72);
+      doc.text(`Filtros: Año=${lastJson.filters.anio} · Componente=${lastJson.filters.componente}`, margin, 72);
 
       let y = 90;
-
-      // Gráficos: donut, indicadores, cronograma (desde canvas)
       const charts = [
         { id: 'componentChart',  section: 'resumen',     title: 'Distribución por Componente' },
         { id: 'indicatorBar',    section: 'indicadores', title: 'Top 10 indicadores por cantidad de actividades' },
@@ -508,27 +511,19 @@
       for (const ch of charts){
         const img = await grabChartImage(ch.id, ch.section);
         if (!img) continue;
-
         doc.setFontSize(12);
         doc.text(ch.title, margin, y);
         y += 14;
-
         const ratio = img.h / img.w;
-        const targetW = maxW;
-        const targetH = targetW * ratio;
-
-        if (y + targetH > pageH - margin) {
-          doc.addPage();
-          y = margin;
-        }
+        const targetW = maxW, targetH = targetW * ratio;
+        if (y + targetH > pageH - margin) { doc.addPage(); y = margin; }
         doc.addImage(img.dataUrl, 'PNG', margin, y, targetW, targetH);
         y += targetH + 16;
       }
 
-      // Tablas: consolidado y top indicadores (con wrapping real)
+      // Tablas
       const headCons = [['Año','Componente','Total']];
       const bodyCons = (lastJson.aggregates.byAnioComponente||[]).map(r => [r.anio_gestion, r.componente, r.total]);
-
       if (y > pageH - margin - 40) { doc.addPage(); y = margin; }
       doc.setFontSize(12);
       doc.text('Consolidado por Año y Componente', margin, y);
@@ -545,14 +540,11 @@
 
       const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,10);
       const headInd = [['Componente','Indicador','Total']];
-      const bodyInd = top.map(r => [r.componente, String(r.indicador), r.total]); // <- sin cortar
-
+      const bodyInd = top.map(r => [r.componente, String(r.indicador), r.total]);
       if (y > pageH - margin - 40) { doc.addPage(); y = margin; }
       doc.text('Top 10 Indicadores', margin, y);
 
-      // ancho de columna para Indicador (wrap)
-      const colIndicWidth = Math.max(220, maxW - 160); // ajusta si quieres más ancho
-
+      const colIndicWidth = Math.max(220, maxW - 160);
       doc.autoTable({
         startY: y + 10,
         head: headInd,
@@ -560,9 +552,9 @@
         styles:{ fontSize:9, cellPadding:3, overflow: 'linebreak' },
         margin:{ left: margin, right: margin },
         columnStyles: {
-          0: { cellWidth: 90 },             // Componente
-          1: { cellWidth: colIndicWidth },  // Indicador (envuelve)
-          2: { cellWidth: 60, halign: 'right' } // Total
+          0: { cellWidth: 90 },
+          1: { cellWidth: colIndicWidth },
+          2: { cellWidth: 60, halign: 'right' }
         }
       });
 
@@ -573,7 +565,6 @@
       if (!lastJson){ alert('No hay datos para exportar.'); return; }
       const wb = XLSX.utils.book_new();
 
-      // Detalle
       const detalle = (lastJson.data||[]).map(r => ({
         created_at: r.created_at, anio_gestion: r.anio_gestion, mes: r.mes,
         componente: r.componente, objetivo: r.objetivo, indicador: r.indicador,
@@ -582,14 +573,12 @@
       const wsDetalle = XLSX.utils.json_to_sheet(detalle);
       XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
 
-      // Consolidado Año–Componente
       const cons = (lastJson.aggregates.byAnioComponente||[]).map(r => ({
         anio_gestion: r.anio_gestion, componente: r.componente, total: r.total
       }));
       const wsCons = XLSX.utils.json_to_sheet(cons);
       XLSX.utils.book_append_sheet(wb, wsCons, 'Consolidado');
 
-      // Top Indicadores (sin cortar)
       const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,20);
       const wsInd = XLSX.utils.json_to_sheet(top);
       XLSX.utils.book_append_sheet(wb, wsInd, 'Indicadores');
