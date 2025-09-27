@@ -1,6 +1,6 @@
 // functions/api/data.js
 // Endpoint de lectura para el dashboard: devuelve datos crudos + agregados.
-// Filtros: ?anio=2025&componente=C1&mes=Marzo
+// Filtros por query string: ?anio=2025&componente=C1&mes=Marzo
 
 export async function onRequestGet({ env, request }) {
   try {
@@ -12,10 +12,11 @@ export async function onRequestGet({ env, request }) {
     }
 
     const urlReq = new URL(request.url);
-    const anio = urlReq.searchParams.get('anio')?.trim() || null;
-    const componente = urlReq.searchParams.get('componente')?.trim() || null;
-    const mes = urlReq.searchParams.get('mes')?.trim() || null;
+    const anio = urlReq.searchParams.get('anio')?.trim() || null;         // "2025" | null
+    const componente = urlReq.searchParams.get('componente')?.trim() || null; // "C1" | null
+    const mes = urlReq.searchParams.get('mes')?.trim() || null;           // "Enero" | null
 
+    // ---- Validación básica de filtros ----
     const MONTHS = [
       'Enero','Febrero','Marzo','Abril','Mayo','Junio',
       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
@@ -30,6 +31,7 @@ export async function onRequestGet({ env, request }) {
       return json({ ok:false, error:'Parámetro mes inválido (use Enero..Diciembre)' }, 400);
     }
 
+    // ---- Construir query de PostgREST ----
     const qp = new URLSearchParams();
     qp.set('select', [
       'created_at',
@@ -64,26 +66,26 @@ export async function onRequestGet({ env, request }) {
 
     const rows = await resp.json();
 
+    // ====== Agregados ======
     const byComponente = aggregateCount(rows, r => r.componente);
     const byIndicador  = aggregateCount(rows, r => `${r.componente}||${r.indicador}`)
       .map(({ key, total }) => {
-        const [comp, ind] = key.split('||'); return { componente: comp, indicador: ind, total };
+        const [comp, ind] = key.split('||');
+        return { componente: comp, indicador: ind, total };
       });
-    const MONTHS = [
-      'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
-    ];
-    const byMes = aggregateCount(rows, r => `${r.componente}||${r.mes}`)
+    const byMes        = aggregateCount(rows, r => `${r.componente}||${r.mes}`)
       .map(({ key, total }) => {
-        const [comp, m] = key.split('||'); return { componente: comp, mes: m, total };
+        const [comp, m] = key.split('||');
+        return { componente: comp, mes: m, total };
       })
       .sort((a,b) => {
         const mi = MONTHS.indexOf(a.mes) - MONTHS.indexOf(b.mes);
         return mi !== 0 ? mi : a.componente.localeCompare(b.componente);
       });
-    const byAnioComp = aggregateCount(rows, r => `${r.anio_gestion}||${r.componente}`)
+    const byAnioComp   = aggregateCount(rows, r => `${r.anio_gestion}||${r.componente}`)
       .map(({ key, total }) => {
-        const [a, c] = key.split('||'); return { anio_gestion: Number(a), componente: c, total };
+        const [a, c] = key.split('||');
+        return { anio_gestion: Number(a), componente: c, total };
       })
       .sort((a,b) => (a.anio_gestion - b.anio_gestion) || a.componente.localeCompare(b.componente));
 
@@ -97,10 +99,10 @@ export async function onRequestGet({ env, request }) {
       counts: { total: rows.length },
       data: rows,
       aggregates: {
-        byComponente,
-        byIndicador,
-        byMes,
-        byAnioComponente: byAnioComp
+        byComponente,               // [{ componente, total }]
+        byIndicador,                // [{ componente, indicador, total }]
+        byMes,                      // [{ componente, mes, total }]
+        byAnioComponente: byAnioComp// [{ anio_gestion, componente, total }]
       },
       meta: { schemaVersion: 1 }
     }, 200, { 'Cache-Control': 'no-store' });
@@ -110,7 +112,7 @@ export async function onRequestGet({ env, request }) {
   }
 }
 
-/* ===== Helpers ===== */
+/* ========== Helpers ========== */
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
