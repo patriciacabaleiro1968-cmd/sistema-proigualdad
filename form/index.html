@@ -70,18 +70,19 @@
             <label class="form-label required">Componente
               <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Elija el componente."></i>
             </label>
+            <!-- value = C1/C2/C3 para cumplir con la tabla de Supabase -->
             <select id="componente" class="form-select" required>
               <option value="" selected disabled>Seleccione…</option>
 
-              <option title="Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.">
+              <option value="C1" title="Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.">
                 COMPONENTE 1: Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.
               </option>
 
-              <option title="La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.">
+              <option value="C2" title="La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.">
                 COMPONENTE 2: La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.
               </option>
 
-              <option title="Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas">
+              <option value="C3" title="Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas">
                 COMPONENTE 3: Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas
               </option>
             </select>
@@ -157,27 +158,26 @@
   <!-- Bootstrap JS (incluye Popper para tooltips) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-// ========= CONFIG =========
-const ENDPOINT_URL = '/api/submit';   // usa tu Pages Function
-const MAX_WORDS = 300;                // si ya lo usabas, déjalo igual
-</script>
+  <script>
+    // ========= CONFIG =========
+    const ENDPOINT_URL = '/api/submit'; // Pages Function
+    const MAX_WORDS = 300;
 
-    // Catálogo con textos largos solicitados
+    // Catálogo (clave por C1/C2/C3 para cumplir con DB; texto largo visible en UI)
     const CATALOGO = {
-      'COMPONENTE 1: Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.': {
+      C1: {
         'Objetivo del Componente 1': [
           'Indicador 1.1: 5 metodologías educativas para el fomento de la igualdad de género y los derechos LGBTIA con niños/as, adolescentes y padres y madres de familia en 2 escuelas primarias y secundarias por cada uno de los 3 departamentos fueron piloteadas.',
           'Indicador 1.2: 6 instrumentos de capacitación o formación continua que fomentan la igualdad de género y los derechos LGBTIA fueron piloteadas en los planes curriculares de las escuelas/unidades para la capacitación y formación continua del personal docente.'
         ]
       },
-      'COMPONENTE 2: La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.': {
+      C2: {
         'Objetivo del Componente 2': [
           'Indicador 2.1: El pilotaje de 1 instrumento de implementación ampliado por el fomento de la igualdad de género y los derechos LGBTIQA+ en 4 empresas (2 de ellas privadas y V.R.G. 2 públicas) concluyó exitosamente en 1 empresa pública y 1 empresa privada.',
           'Indicador 2.2: 5 buenas prácticas para la aplicación de estándares de igualdad de género y derechos LGBTIQA+ son compartidas entre empresas públicas y privadas a través de una plataforma conjunta interactiva.'
         ]
       },
-      'COMPONENTE 3: Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas': {
+      C3: {
         'Objetivo del Componente 3': [
           'Indicador 3.1: 38 productos mediáticos para sensibilizar al público a nivel local, departamental y nacional en general para la igualdad de género y los derechos LGBTIA han sido elaborados por actores de medios de comunicación.',
           'Indicador 3.2: 3 productos comunicacionales para la orientación de servidores/as de instituciones públicas en la aplicación de leyes vigentes en materia de igualdad de género y derechos LGBTIA han sido elaborados por instituciones públicas relevantes.'
@@ -244,24 +244,34 @@ const MAX_WORDS = 300;                // si ya lo usabas, déjalo igual
         return;
       }
 
-      const payload = new FormData();
-      payload.append('Anio_Gestion', $$('#anio').value);
-      payload.append('Mes', $$('#mes').value);
-      payload.append('Componente', $$('#componente').value);
-      payload.append('Objetivo', $$('#objetivo').value);
-      payload.append('Indicador', $$('#indicador').value);
-      payload.append('Descripcion', desc);
-      payload.append('Observaciones', $$('#observaciones').value.trim());
-      payload.append('Evidencia_URL', url);
+      // Construye JSON (lo que espera /api/submit)
+      const data = {
+        Anio_Gestion: $$('#anio').value,
+        Mes: $$('#mes').value,
+        Componente: $$('#componente').value,   // C1/C2/C3
+        Objetivo: $$('#objetivo').value,
+        Indicador: $$('#indicador').value,
+        Descripcion: desc,
+        Observaciones: $$('#observaciones').value.trim(),
+        Evidencia_URL: url
+      };
 
       $$('#btnSpin').classList.remove('d-none');
       $$('#btnEnviar').disabled = true;
 
       try{
-        const res = await fetch(ENDPOINT_URL, { method: 'POST', body: payload });
-        let ok = res.ok, data = null;
-        try{ data = await res.json(); ok = ok && data?.status==='ok'; }catch(_){}
-        if (!ok) throw new Error(data?.message || 'Error de servidor');
+        const res = await fetch(ENDPOINT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json().catch(()=> ({}));
+        if (!res.ok || json.ok === false) {
+          const msg = json?.error || json?.message || 'Error de servidor';
+          throw new Error(msg);
+        }
+
         showAlert('success', '✅ ¡Reporte enviado! Muchas gracias.');
         form.reset();
         $$('#objetivo').disabled = true; $$('#indicador').disabled = true;
