@@ -112,9 +112,7 @@
         <div id="resumen" class="dashboard-section active">
           <h2 class="mb-3">Resumen del Proyecto</h2>
 
-          <div class="row g-3 mb-3" id="kpisRow">
-            <!-- KPI dinámicos por componente -->
-          </div>
+          <div class="row g-3 mb-3" id="kpisRow"></div>
 
           <div class="row g-3">
             <div class="col-lg-6">
@@ -159,7 +157,7 @@
           <div class="card">
             <div class="card-body">
               <h5 class="card-title">Top 10 indicadores por cantidad de actividades</h5>
-              <canvas id="indicatorBar" height="320"></canvas>
+              <canvas id="indicatorBar" height="360"></canvas>
               <div id="indEmpty" class="empty mt-2 d-none">No hay registros para graficar.</div>
             </div>
           </div>
@@ -193,7 +191,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // ***** nitidez de charts en el PDF (y pantalla) *****
+    // ***** nitidez de charts *****
     if (window.Chart && Chart.defaults) {
       Chart.defaults.devicePixelRatio = 2; // 2x para imágenes más nítidas
     }
@@ -206,6 +204,25 @@
     let chartDonut, chartBarIndicators, chartStackedMonths;
     let lastJson = null; // para exportar
 
+    // ============= Helpers de texto (WRAP) =============
+    function wrapWords(text, maxCharsPerLine = 42){
+      if (!text) return [''];
+      const words = String(text).split(/\s+/);
+      const lines = [];
+      let line = '';
+      for (const w of words){
+        if ((line + ' ' + w).trim().length <= maxCharsPerLine){
+          line = (line ? line + ' ' : '') + w;
+        } else {
+          if (line) lines.push(line);
+          line = w;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    // ============= INIT =============
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
 
@@ -323,28 +340,57 @@
       });
     }
 
+    // === INDICADORES: barras horizontales con labels envueltos (multilínea) ===
     function renderIndicators(byIndicador){
       const items = (byIndicador||[])
-        .map(d => ({ label: `${d.componente} – ${d.indicador}`.slice(0,120), total:d.total }))
-        .sort((a,b)=> b.total-a.total).slice(0,10).reverse();
-      const labels = items.map(x=>x.label), vals = items.map(x=>x.total);
+        .map(d => ({
+          full: `${d.componente} – ${d.indicador}`,
+          total: d.total
+        }))
+        .sort((a,b)=> b.total-a.total)
+        .slice(0,10)
+        .reverse(); // mayor al final -> aparece abajo
+
+      const fullLabels   = items.map(x => x.full);
+      const wrapped      = items.map(x => wrapWords(x.full, 48)); // <= Ajusta ancho por línea
+      const values       = items.map(x => x.total);
+
       const ctx = document.getElementById('indicatorBar')?.getContext('2d');
       const empty = document.getElementById('indEmpty');
-
       if (!ctx) return;
-      empty.classList.toggle('d-none', items.length>0);
 
+      empty.classList.toggle('d-none', items.length>0);
       if (chartBarIndicators) chartBarIndicators.destroy();
       if (items.length===0) return;
 
       chartBarIndicators = new Chart(ctx,{
         type:'bar',
-        data:{ labels, datasets:[{ data:vals, backgroundColor: labels.map((_,i)=> PALETTE[i%PALETTE.length]) }] },
+        data:{ 
+          // Aquí pasamos arrays de líneas -> Chart.js dibuja multiline tick labels
+          labels: wrapped,
+          datasets:[{ data: values, backgroundColor: wrapped.map((_,i)=> PALETTE[i%PALETTE.length]) }]
+        },
         options:{
           indexAxis:'y',
           responsive:true,
-          scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } },
-          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=> ` ${c.raw} actividad(es)` } } }
+          layout: { padding: { left: 8, right: 16 } },
+          scales:{
+            x:{ beginAtZero:true, ticks:{ precision:0 } },
+            y:{ ticks:{ font:{ size: 10 } } } // fuente más pequeña mejora legibilidad
+          },
+          plugins:{
+            legend:{ display:false },
+            tooltip:{ 
+              callbacks:{
+                // Título del tooltip: etiqueta completa sin cortar
+                title: items => {
+                  const i = items[0].dataIndex;
+                  return fullLabels[i];
+                },
+                label: ctx => ` ${ctx.raw} actividad(es)`
+              }
+            }
+          }
         }
       });
     }
@@ -399,7 +445,7 @@
       });
     }
 
-    // ====== Exportar: incluye gráficos como imágenes ======
+    // ====== Exportar: incluye gráficos como imágenes y tablas con wrap ======
 
     // Helper: activa temporalmente la sección que contiene un canvas para poder "pintarlo"
     async function grabChartImage(canvasId, sectionId){
@@ -479,7 +525,7 @@
         y += targetH + 16;
       }
 
-      // Tablas: consolidado y top indicadores
+      // Tablas: consolidado y top indicadores (con wrapping real)
       const headCons = [['Año','Componente','Total']];
       const bodyCons = (lastJson.aggregates.byAnioComponente||[]).map(r => [r.anio_gestion, r.componente, r.total]);
 
@@ -499,16 +545,25 @@
 
       const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,10);
       const headInd = [['Componente','Indicador','Total']];
-      const bodyInd = top.map(r => [r.componente, String(r.indicador).slice(0,120), r.total]);
+      const bodyInd = top.map(r => [r.componente, String(r.indicador), r.total]); // <- sin cortar
 
       if (y > pageH - margin - 40) { doc.addPage(); y = margin; }
       doc.text('Top 10 Indicadores', margin, y);
+
+      // ancho de columna para Indicador (wrap)
+      const colIndicWidth = Math.max(220, maxW - 160); // ajusta si quieres más ancho
+
       doc.autoTable({
         startY: y + 10,
         head: headInd,
         body: bodyInd,
-        styles:{ fontSize:9, cellPadding:3 },
-        margin:{ left: margin, right: margin }
+        styles:{ fontSize:9, cellPadding:3, overflow: 'linebreak' },
+        margin:{ left: margin, right: margin },
+        columnStyles: {
+          0: { cellWidth: 90 },             // Componente
+          1: { cellWidth: colIndicWidth },  // Indicador (envuelve)
+          2: { cellWidth: 60, halign: 'right' } // Total
+        }
       });
 
       doc.save('proigualdad-dashboard.pdf');
@@ -534,7 +589,7 @@
       const wsCons = XLSX.utils.json_to_sheet(cons);
       XLSX.utils.book_append_sheet(wb, wsCons, 'Consolidado');
 
-      // Top Indicadores
+      // Top Indicadores (sin cortar)
       const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=> b.total-a.total).slice(0,20);
       const wsInd = XLSX.utils.json_to_sheet(top);
       XLSX.utils.book_append_sheet(wb, wsInd, 'Indicadores');
