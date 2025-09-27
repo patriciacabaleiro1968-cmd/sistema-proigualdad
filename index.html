@@ -111,7 +111,9 @@
         <!-- Resumen -->
         <div id="resumen" class="dashboard-section active">
           <h2 class="mb-3">Resumen del Proyecto</h2>
+
           <div class="row g-3 mb-3" id="kpisRow"></div>
+
           <div class="row g-3">
             <div class="col-lg-6">
               <div class="card">
@@ -125,6 +127,7 @@
                 </div>
               </div>
             </div>
+
             <div class="col-lg-6">
               <div class="card">
                 <div class="card-body">
@@ -132,7 +135,11 @@
                   <div class="table-responsive">
                     <table class="table table-sm table-striped">
                       <thead>
-                        <tr><th>Año</th><th>Componente</th><th>Total actividades</th></tr>
+                        <tr>
+                          <th>Año</th>
+                          <th>Componente</th>
+                          <th>Total actividades</th>
+                        </tr>
                       </thead>
                       <tbody id="tablaConsolidado"></tbody>
                     </table>
@@ -158,7 +165,7 @@
 
         <!-- Cronograma -->
         <div id="cronograma" class="dashboard-section">
-          <h2 class="mb-3">Cronograma</h2>
+          <h2 class="mb-3">Cronograma (conteo de actividades por mes, apilado por componente)</h2>
           <div class="card">
             <div class="card-body">
               <canvas id="monthStacked" height="280"></canvas>
@@ -183,9 +190,12 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- Lógica del Dashboard -->
   <script>
+    // DPI para gráficos nítidos
     if (window.Chart && Chart.defaults) Chart.defaults.devicePixelRatio = 2;
 
+    // ===== Config =====
     const API_BASE = '/api/data';
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const PALETTE = ['#4a3c8d','#e5438a','#41c4b3','#6c757d','#28a745','#17a2b8','#fd7e14','#20c997'];
@@ -193,55 +203,306 @@
     let chartDonut, chartBarIndicators, chartStackedMonths;
     let lastJson = null;
 
+    // ===== Helpers =====
     function showLoading(show){ document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
-    function wrapWords(text, max=48){ if (!text) return ['']; const words=text.split(/\s+/); const lines=[]; let line=''; for(const w of words){ if((line+' '+w).trim().length<=max) line=(line?line+' ':'')+w; else{ if(line) lines.push(line); line=w; } } if(line) lines.push(line); return lines; }
+    function wrapWords(text, max=48){
+      if (!text) return [''];
+      const words=String(text).split(/\s+/); const lines=[]; let line='';
+      for(const w of words){
+        if((line+' '+w).trim().length<=max) line=(line?line+' ':'')+w;
+        else{ if(line) lines.push(line); line=w; }
+      }
+      if(line) lines.push(line);
+      return lines;
+    }
     async function fetchJSON(url){
-      const resp = await fetch(url, { headers:{ 'Accept':'application/json' }, cache: 'no-store' });
+      const resp = await fetch(url, { headers:{ 'Accept':'application/json' }, cache:'no-store' });
       if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
-      if(json && typeof json === 'object' && json.ok === true && json.data) return json.data;
+      if (json && json.ok === true && json.data) return json.data;
       return json;
     }
-    function filtrosActuales(){ const y=document.getElementById('yearFilter').value; const c=document.getElementById('componenteFilter').value; return { anio: y!=='todos'?Number(y):null, componente:c||null }; }
+    function filtrosActuales(){
+      const y=document.getElementById('yearFilter').value;
+      const c=document.getElementById('componenteFilter').value;
+      return { anio: y!=='todos' ? Number(y) : null, componente: c || null };
+    }
 
+    // ===== Init =====
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES',{ year:'numeric', month:'long', day:'numeric' });
-      document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', e => { e.preventDefault(); document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active')); link.classList.add('active'); document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active')); document.getElementById(link.getAttribute('data-section')).classList.add('active'); }));
+      document.getElementById('currentDate').textContent =
+        new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+
+      // navegación
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+          link.classList.add('active');
+          document.querySelectorAll('.dashboard-section').forEach(s=>s.classList.remove('active'));
+          document.getElementById(link.getAttribute('data-section')).classList.add('active');
+        });
+      });
+
+      // filtros
       document.getElementById('btnAplicar').addEventListener('click', cargarDesdeAPI);
       document.getElementById('btnRefrescar').addEventListener('click', cargarDesdeAPI);
+
+      // export
       document.getElementById('btnPdf').addEventListener('click', e => { e.preventDefault(); exportarPDF(); });
       document.getElementById('btnExcel').addEventListener('click', e => { e.preventDefault(); exportarExcel(); });
+
+      // primera carga
       cargarDesdeAPI();
     });
 
+    // ===== Carga y agregados =====
     async function cargarDesdeAPI(){
       showLoading(true);
       try{
         const { anio, componente } = filtrosActuales();
+
+        // Datos crudos (con filtros actuales)
         const uRaw = new URL(API_BASE, location.origin);
         if (anio) uRaw.searchParams.set('anio', anio);
         if (componente) uRaw.searchParams.set('componente', componente);
-        const dataRows = await fetchJSON(uRaw.toString());
+        const rows = await fetchJSON(uRaw.toString()); // arreglo de filas
 
-        const mapAC=new Map(); const mapInd=new Map(); const mapMes=new Map();
-        for(const r of dataRows){
-          const keyAC=`${r.anio_gestion}||${r.componente}`; mapAC.set(keyAC,(mapAC.get(keyAC)||0)+1);
-          const keyInd=`${r.componente}||${r.indicador||'Sin indicador'}`; mapInd.set(keyInd,(mapInd.get(keyInd)||0)+1);
-          const keyMes=`${r.mes}||${r.componente}`; mapMes.set(keyMes,(mapMes.get(keyMes)||0)+1);
+        // Agregados en frontend
+        const byComponenteMap = {};
+        const byAnioCompMap = new Map();
+        const byIndicadorMap = new Map();
+        const byMesMap = new Map();
+
+        for (const r of rows) {
+          // por componente
+          byComponenteMap[r.componente] = (byComponenteMap[r.componente] || 0) + 1;
+
+          // por año/componente
+          const kAC = `${r.anio_gestion}||${r.componente}`;
+          byAnioCompMap.set(kAC, (byAnioCompMap.get(kAC) || 0) + 1);
+
+          // por indicador
+          const kInd = `${r.componente}||${r.indicador || 'Sin indicador'}`;
+          byIndicadorMap.set(kInd, (byIndicadorMap.get(kInd) || 0) + 1);
+
+          // por mes/componente (mes puede ser '01'..'12' o nombre)
+          const mesKey = /^\d{2}$/.test(String(r.mes)) ? String(r.mes) : String(r.mes);
+          const kMes = `${mesKey}||${r.componente}`;
+          byMesMap.set(kMes, (byMesMap.get(kMes) || 0) + 1);
         }
-        const byAnioComponente=[...mapAC.entries()].map(([k,t])=>{const[a,c]=k.split('||');return{anio_gestion:+a,componente:c,total:t};});
-        const byIndicador=[...mapInd.entries()].map(([k,t])=>{const[c,i]=k.split('||');return{componente:c,indicador:i,total:t};});
-        const byMes=[...mapMes.entries()].map(([k,t])=>{const[m,c]=k.split('||');return{mes:m,componente:c,total:t};});
-        const byComponente=Object.values(dataRows.reduce((a,r)=>{a[r.componente]=a[r.componente]||{componente:r.componente,total:0};a[r.componente].total++;return a;},{}));
 
-        lastJson={ ok:true, filters:{anio:anio||'Todos',componente:componente||'Todos'}, data:dataRows, aggregates:{byComponente,byAnioComponente,byIndicador,byMes} };
+        const byComponente = Object.entries(byComponenteMap).map(([componente,total])=>({ componente, total }));
+        const byAnioComponente = Array.from(byAnioCompMap.entries()).map(([k,total])=>{
+          const [anio_gestion, componente] = k.split('||'); return { anio_gestion: Number(anio_gestion), componente, total };
+        }).sort((a,b)=> a.anio_gestion - b.anio_gestion || a.componente.localeCompare(b.componente));
 
-        document.getElementById('lastUpdate').textContent='Última actualización: '+new Date().toLocaleTimeString('es-ES');
-        document.getElementById('filtrosChip').textContent=`Año: ${lastJson.filters.anio} · Componente: ${lastJson.filters.componente}`;
-        renderKPIs(byComponente); renderDonut(byComponente); renderTablaConsolidado(byAnioComponente); renderIndicators(byIndicador); renderStackedMonths(byMes);
-      }catch(err){ console.error(err); alert('No se pudieron cargar datos del servidor.'); }finally{ showLoading(false); }
+        const byIndicador = Array.from(byIndicadorMap.entries()).map(([k,total])=>{
+          const [comp, ind] = k.split('||'); return { componente: comp, indicador: ind, total };
+        });
+
+        const byMes = Array.from(byMesMap.entries()).map(([k,total])=>{
+          const [m, comp] = k.split('||');
+          const nombreMes = /^\d{2}$/.test(m) ? MONTHS[Number(m)-1] : m; // si viene 01..12 → nombre
+          return { mes: nombreMes, componente: comp, total };
+        });
+
+        lastJson = { ok:true, filters:{ anio: anio ?? 'Todos', componente: componente || 'Todos' }, data: rows,
+          aggregates: { byComponente, byAnioComponente, byIndicador, byMes } };
+
+        // UI
+        document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
+        document.getElementById('filtrosChip').textContent =
+          `Año: ${lastJson.filters.anio} · Componente: ${lastJson.filters.componente}`;
+
+        renderKPIs(byComponente);
+        renderDonut(byComponente);
+        renderTablaConsolidado(byAnioComponente);
+        renderIndicators(byIndicador);
+        renderStackedMonths(byMes);
+
+      }catch(err){
+        console.error(err);
+        alert('No se pudieron cargar datos del servidor.');
+      }finally{
+        showLoading(false);
+      }
     }
 
-    // Renders...
-    function renderKPIs(byC){const row=document.getElementById('kpisRow');row.innerHTML='';if(!byC||!byC.length){row.innerHTML='<div class="col-12"><div class="empty">No hay datos</div></div>';return;}byC.forEach((it,idx)=>{const col=document.createElement('div');col.className='col-12 col-md-4';col.innerHTML=`<div class="card kpi-card"><div class="card-body"><h6 class="text-muted mb-1">Componente</h6><h3 class="mb-2" style="color:${PALETTE[idx%PALETTE.length]}">${it.componente}</h3><div class="d-flex align-items-baseline gap-2"><div class="display-6 fw-bold">${it.total}</div><span class="text-muted">actividad(es)</span></div></div></div>`;row.appendChild(col);});}
-    function renderDonut(byC){const labels=(byC||[]).map(d=>d.componente);const vals=(byC||[]).
+    // ===== Renders =====
+    function renderKPIs(byC){
+      const row = document.getElementById('kpisRow'); row.innerHTML='';
+      if(!byC || !byC.length){
+        row.innerHTML = '<div class="col-12"><div class="empty">No hay datos</div></div>'; return;
+      }
+      byC.forEach((it,idx)=>{
+        const col=document.createElement('div'); col.className='col-12 col-md-4';
+        col.innerHTML = `
+          <div class="card kpi-card"><div class="card-body">
+            <h6 class="text-muted mb-1">Componente</h6>
+            <h3 class="mb-2" style="color:${PALETTE[idx%PALETTE.length]}">${it.componente}</h3>
+            <div class="d-flex align-items-baseline gap-2">
+              <div class="display-6 fw-bold">${it.total}</div><span class="text-muted">actividad(es)</span>
+            </div>
+          </div></div>`;
+        row.appendChild(col);
+      });
+    }
+
+    function renderDonut(byC){
+      const labels = (byC||[]).map(d=>d.componente||'N/D');
+      const vals   = (byC||[]).map(d=>Number(d.total||0));
+      const ctx = document.getElementById('componentChart')?.getContext('2d');
+      const empty = document.getElementById('donutEmpty');
+      if (!ctx) return;
+      empty.classList.toggle('d-none', labels.length>0);
+      if (chartDonut) chartDonut.destroy();
+      if (!labels.length) return;
+      chartDonut = new Chart(ctx,{
+        type:'doughnut',
+        data:{ labels, datasets:[{ data: vals, backgroundColor: labels.map((_,i)=>PALETTE[i%PALETTE.length]), borderWidth:0 }]},
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
+      });
+    }
+
+    function renderIndicators(byInd){
+      const items = (byInd||[]).map(d=>({ full:`${d.componente} – ${d.indicador}`, total:d.total }))
+                               .sort((a,b)=>b.total-a.total).slice(0,10).reverse();
+      const wrapped = items.map(x=>wrapWords(x.full,48));
+      const values  = items.map(x=>x.total);
+      const full    = items.map(x=>x.full);
+      const ctx = document.getElementById('indicatorBar')?.getContext('2d');
+      const empty = document.getElementById('indEmpty');
+      if (!ctx) return;
+      empty.classList.toggle('d-none', items.length>0);
+      if (chartBarIndicators) chartBarIndicators.destroy();
+      if (!items.length) return;
+      chartBarIndicators = new Chart(ctx,{
+        type:'bar',
+        data:{ labels: wrapped, datasets:[{ data: values, backgroundColor: wrapped.map((_,i)=>PALETTE[i%PALETTE.length]) }]},
+        options:{
+          indexAxis:'y', responsive:true,
+          scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } }, y:{ ticks:{ font:{ size:10 } } } },
+          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ title: its => full[its[0].dataIndex] } } }
+        }
+      });
+    }
+
+    function renderStackedMonths(byMes){
+      const comps=['C1','C2','C3'];
+      const matrix={}; MONTHS.forEach(m=>matrix[m]={C1:0,C2:0,C3:0});
+      (byMes||[]).forEach(x=>{ if(matrix[x.mes] && matrix[x.mes][x.componente]!=null) matrix[x.mes][x.componente]=x.total; });
+      const datasets = comps.map((c,idx)=>({ label:c, data: MONTHS.map(m=>matrix[m][c]), backgroundColor: PALETTE[idx%PALETTE.length], stack:'mes' }));
+      const ctx = document.getElementById('monthStacked')?.getContext('2d');
+      const empty = document.getElementById('cronEmpty');
+      if (!ctx) return;
+      const total = datasets.reduce((s,ds)=> s + ds.data.reduce((a,b)=>a+b,0), 0);
+      empty.classList.toggle('d-none', total>0);
+      if (chartStackedMonths) chartStackedMonths.destroy();
+      if (!total) return;
+      chartStackedMonths = new Chart(ctx,{
+        type:'bar', data:{ labels: MONTHS, datasets },
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom' } },
+          scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true, ticks:{ precision:0 } } } }
+      });
+    }
+
+    function renderTablaConsolidado(rows){
+      const tb=document.getElementById('tablaConsolidado'); const empty=document.getElementById('consolEmpty');
+      tb.innerHTML=''; if(!rows||!rows.length){ empty.classList.remove('d-none'); return; }
+      empty.classList.add('d-none');
+      rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.anio_gestion}</td><td>${r.componente}</td><td>${r.total}</td>`; tb.appendChild(tr); });
+    }
+
+    // ===== Exportar =====
+    async function grabChartImage(canvasId, sectionId){
+      const current=document.querySelector('.dashboard-section.active');
+      const section=document.getElementById(sectionId);
+      let switched=false;
+      if(section && !section.classList.contains('active')){
+        if(current) current.classList.remove('active');
+        section.classList.add('active'); switched=true;
+        await new Promise(r=>setTimeout(r,120));
+      }
+      const canvas=document.getElementById(canvasId);
+      const out = canvas && canvas.width ? { dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height } : null;
+      if(switched){ section.classList.remove('active'); if(current) current.classList.add('active'); await new Promise(r=>setTimeout(r,0)); }
+      return out;
+    }
+
+    async function exportarPDF(){
+      if (!lastJson){ alert('No hay datos para exportar.'); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:'pt', format:'a4' });
+      const pageW = doc.internal.pageSize.getWidth(); const pageH = doc.internal.pageSize.getHeight();
+      const margin=40, maxW=pageW - margin*2;
+
+      doc.setFontSize(16); doc.text('Reporte ProIgualdad – Dashboard', margin, 42);
+      doc.setFontSize(10);
+      doc.text(`Fecha: ${new Date().toLocaleString('es-ES')}`, margin, 58);
+      doc.text(`Filtros: Año=${lastJson.filters.anio} · Componente=${lastJson.filters.componente}`, margin, 72);
+
+      let y=90;
+      const charts=[
+        { id:'componentChart', section:'resumen', title:'Distribución por Componente' },
+        { id:'indicatorBar',   section:'indicadores', title:'Top 10 indicadores por cantidad de actividades' },
+        { id:'monthStacked',   section:'cronograma', title:'Actividades por mes (apilado por componente)' }
+      ];
+      for(const ch of charts){
+        const img=await grabChartImage(ch.id, ch.section); if(!img) continue;
+        doc.setFontSize(12); doc.text(ch.title, margin, y); y+=14;
+        const ratio=img.h/img.w; const w=maxW, h=w*ratio;
+        if(y+h > pageH - margin){ doc.addPage(); y=margin; }
+        doc.addImage(img.dataUrl,'PNG',margin,y,w,h); y+=h+16;
+      }
+
+      const headCons=[['Año','Componente','Total']];
+      const bodyCons=(lastJson.aggregates.byAnioComponente||[]).map(r=>[r.anio_gestion,r.componente,r.total]);
+      if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
+      doc.setFontSize(12); doc.text('Consolidado por Año y Componente', margin, y); y+=6;
+      doc.autoTable({ startY:y+10, head:headCons, body:bodyCons, styles:{ fontSize:10, cellPadding:3 }, margin:{ left:margin, right:margin } });
+      y = doc.lastAutoTable.finalY + 20;
+
+      const top=(lastJson.aggregates.byIndicador||[]).sort((a,b)=>b.total-a.total).slice(0,10);
+      const headInd=[['Componente','Indicador','Total']];
+      const bodyInd=top.map(r=>[r.componente,String(r.indicador),r.total]);
+      if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
+      doc.text('Top 10 Indicadores', margin, y);
+      const colIndicWidth=Math.max(220, maxW-160);
+      doc.autoTable({
+        startY:y+10, head:headInd, body:bodyInd,
+        styles:{ fontSize:9, cellPadding:3, overflow:'linebreak' },
+        margin:{ left:margin, right:margin },
+        columnStyles:{ 0:{ cellWidth:90 }, 1:{ cellWidth:colIndicWidth }, 2:{ cellWidth:60, halign:'right' } }
+      });
+
+      doc.save('proigualdad-dashboard.pdf');
+    }
+
+    function exportarExcel(){
+      if (!lastJson){ alert('No hay datos para exportar.'); return; }
+      const wb = XLSX.utils.book_new();
+
+      const detalle = (lastJson.data||[]).map(r=>({
+        created_at:r.created_at, anio_gestion:r.anio_gestion, mes:r.mes,
+        componente:r.componente, objetivo:r.objetivo, indicador:r.indicador,
+        descripcion:r.descripcion, observaciones:r.observaciones, evidencia_url:r.evidencia_url
+      }));
+      const wsDetalle = XLSX.utils.json_to_sheet(detalle);
+      XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+
+      const cons = (lastJson.aggregates.byAnioComponente||[]).map(r=>({
+        anio_gestion:r.anio_gestion, componente:r.componente, total:r.total
+      }));
+      const wsCons = XLSX.utils.json_to_sheet(cons);
+      XLSX.utils.book_append_sheet(wb, wsCons, 'Consolidado');
+
+      const top = (lastJson.aggregates.byIndicador||[]).sort((a,b)=>b.total-a.total).slice(0,20);
+      const wsInd = XLSX.utils.json_to_sheet(top);
+      XLSX.utils.book_append_sheet(wb, wsInd, 'Indicadores');
+
+      XLSX.writeFile(wb, 'proigualdad-dashboard.xlsx');
+    }
+  </script>
+</body>
+</html>
