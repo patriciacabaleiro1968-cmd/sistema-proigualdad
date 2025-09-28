@@ -3,123 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProIgualdad – Formulario de captura</title>
+  <title>ProIgualdad – Captura de actividades</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; padding: 1rem; background:#fafafa; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1rem; max-width: 980px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    h1 { font-size: 1.25rem; margin: 0 0 .75rem; }
-    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: .75rem; }
-    .col-3 { grid-column: span 3; } .col-4{grid-column: span 4;} .col-6 { grid-column: span 6; } .col-12 { grid-column: span 12; }
-    label { display:block; font-size:.85rem; color:#374151; margin-bottom:.25rem; }
-    input, select, textarea { width:100%; padding:.55rem .6rem; border:1px solid #d1d5db; border-radius:8px; font-size:.95rem; background:#fff; }
-    textarea[readonly] { background:#f9fafb; color:#111827; }
-    .row { display:flex; gap:.5rem; align-items:center; flex-wrap: wrap; }
-    .btn { appearance: none; border:0; background:#111827; color:#fff; padding:.65rem 1rem; border-radius:10px; cursor:pointer; font-weight:600; }
+    :root { color-scheme: light; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; margin: 0; background:#0b0b0c; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px 18px 4px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    h1 { margin:.2rem 0 1rem; font-size:1.25rem; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:.75rem; }
+    .col-3{grid-column: span 3;} .col-4{grid-column: span 4;} .col-6{grid-column: span 6;} .col-12{grid-column: span 12;}
+    label{display:block; font-size:.86rem; color:#374151; margin-bottom:.25rem;}
+    input, select, textarea{ width:100%; font-size:.95rem; padding:.55rem .6rem; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    textarea[readonly]{ background:#f9fafb; color:#111827; }
+    .row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .btn { appearance:none; border:0; background:#111827; color:#fff; padding:.65rem 1rem; border-radius:10px; cursor:pointer; font-weight:600; }
     .btn.secondary { background:#6b7280; }
-    .help { font-size:.8rem; color:#6b7280; }
+    .help { font-size:.82rem; color:#6b7280; }
     .ok { color:#065f46; font-weight:600; }
     .err { color:#b91c1c; font-weight:600; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Captura de actividades</h1>
-    <form id="formEl">
-      <div class="grid">
-        <div class="col-3">
-          <label for="anio_gestion">Año de gestión</label>
-          <input id="anio_gestion" type="number" min="2024" max="2030" required />
-        </div>
-        <div class="col-3">
-          <label for="mes">Mes</label>
-          <select id="mes" required>
-            <option value="">Seleccione…</option>
-            <option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option>
-            <option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option>
-            <option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
-          </select>
-          <div class="help">Se convertirá automáticamente a "01".."12"</div>
-        </div>
-        <div class="col-6">
-          <label for="componente">Componente</label>
-          <select id="componente" required>
-            <option value="">Seleccione…</option>
-            <option>COMPONENTE 1</option>
-            <option>COMPONENTE 2</option>
-            <option>COMPONENTE 3</option>
-            <option>COMPONENTE 4</option>
-          </select>
-        </div>
+  <div class="wrap">
+    <div class="card">
+      <h1>Captura de actividades</h1>
 
-        <div class="col-12">
-          <label for="objetivo">Objetivo del componente (autocompletado)</label>
-          <textarea id="objetivo" rows="2" readonly placeholder="Se autocompleta según el componente…"></textarea>
-        </div>
+      <form id="formEl" aria-describedby="status">
+        <div class="grid">
+          <div class="col-3">
+            <label for="anio_gestion">Año de gestión</label>
+            <input id="anio_gestion" type="number" min="2024" max="2030" required />
+          </div>
 
-        <div class="col-12">
-          <label for="indicador">Indicador</label>
-          <select id="indicador" required>
-            <option value="">Seleccione…</option>
-          </select>
-          <div class="help">El catálogo de indicadores se carga según el componente elegido.</div>
-        </div>
+          <div class="col-3">
+            <label for="mes">Mes</label>
+            <select id="mes" required>
+              <option value="">Seleccione…</option>
+              <option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option>
+              <option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option>
+              <option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option>
+            </select>
+            <div class="help">Se convertirá automáticamente a “01”..“12”.</div>
+          </div>
 
-        <div class="col-6">
-          <label for="actividad_principal">Actividad principal</label>
-          <input id="actividad_principal" required />
-        </div>
-        <div class="col-6">
-          <label for="subactividad">Subactividad</label>
-          <input id="subactividad" />
-        </div>
+          <div class="col-6">
+            <label for="componente">Componente</label>
+            <select id="componente" required>
+              <option value="">Seleccione…</option>
+              <option>COMPONENTE 1</option>
+              <option>COMPONENTE 2</option>
+              <option>COMPONENTE 3</option>
+              <option>COMPONENTE 4</option>
+            </select>
+          </div>
 
-        <div class="col-12">
-          <label for="tarea_especifica">Tarea específica</label>
-          <input id="tarea_especifica" />
-        </div>
+          <div class="col-12">
+            <label for="objetivo">Objetivo del componente (autocompletado)</label>
+            <textarea id="objetivo" rows="2" readonly placeholder="Se autocompleta según el componente…"></textarea>
+          </div>
 
-        <div class="col-4">
-          <label for="responsable">Responsable</label>
-          <input id="responsable" />
-        </div>
-        <div class="col-4">
-          <label for="meta">Meta</label>
-          <input id="meta" type="number" step="any" />
-        </div>
-        <div class="col-4">
-          <label for="avance">Avance</label>
-          <input id="avance" type="number" step="any" />
-        </div>
+          <div class="col-12">
+            <label for="indicador">Indicador</label>
+            <select id="indicador" required>
+              <option value="">Seleccione…</option>
+            </select>
+            <div class="help">El catálogo de indicadores se carga según el componente elegido.</div>
+          </div>
 
-        <div class="col-4">
-          <label for="porcentaje_cumplimiento">% Cumplimiento</label>
-          <input id="porcentaje_cumplimiento" type="number" step="any" min="0" max="100" />
-        </div>
-        <div class="col-4">
-          <label for="estado">Estado</label>
-          <select id="estado">
-            <option value="Planificado">Planificado</option>
-            <option value="En ejecución">En ejecución</option>
-            <option value="Completado">Completado</option>
-            <option value="Retrasado">Retrasado</option>
-          </select>
-        </div>
-        <div class="col-4">
-          <label for="evidencia_url">Evidencia (URL)</label>
-          <input id="evidencia_url" type="url" placeholder="https://…" />
-        </div>
+          <div class="col-6">
+            <label for="actividad_principal">Actividad principal</label>
+            <input id="actividad_principal" required />
+          </div>
+          <div class="col-6">
+            <label for="subactividad">Subactividad</label>
+            <input id="subactividad" />
+          </div>
 
-        <div class="col-12 row" style="justify-content: flex-end; margin-top:.5rem;">
-          <button type="button" class="btn secondary" id="btnReset">Limpiar</button>
-          <button type="submit" class="btn">Enviar</button>
+          <div class="col-12">
+            <label for="tarea_especifica">Tarea específica</label>
+            <input id="tarea_especifica" />
+          </div>
+
+          <div class="col-4">
+            <label for="responsable">Responsable</label>
+            <input id="responsable" />
+          </div>
+          <div class="col-4">
+            <label for="meta">Meta</label>
+            <input id="meta" type="number" step="any" />
+          </div>
+          <div class="col-4">
+            <label for="avance">Avance</label>
+            <input id="avance" type="number" step="any" />
+          </div>
+
+          <div class="col-4">
+            <label for="porcentaje_cumplimiento">% Cumplimiento</label>
+            <input id="porcentaje_cumplimiento" type="number" step="any" min="0" max="100" />
+          </div>
+          <div class="col-4">
+            <label for="estado">Estado</label>
+            <select id="estado">
+              <option value="Planificado">Planificado</option>
+              <option value="En ejecución">En ejecución</option>
+              <option value="Completado">Completado</option>
+              <option value="Retrasado">Retrasado</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <label for="evidencia_url">Evidencia (URL)</label>
+            <input id="evidencia_url" type="url" placeholder="https://…" />
+          </div>
+
+          <div class="col-12 row" style="justify-content:flex-end; margin-top:.5rem;">
+            <button type="button" class="btn secondary" id="btnReset">Limpiar</button>
+            <button type="submit" class="btn">Enviar</button>
+          </div>
         </div>
-      </div>
-    </form>
-    <p id="status" class="help" style="margin-top:.75rem;"></p>
+      </form>
+
+      <p id="status" class="help" role="status" aria-live="polite" style="margin-top:.75rem;"></p>
+    </div>
   </div>
 
+  <!-- Todo el JS está en este bloque; no hay llamadas externas ni fetch al cargar -->
   <script>
-  // ===== Catálogo de objetivos e indicadores por componente =====
+  // ===== Catálogo local de objetivos e indicadores por componente =====
   const OBJETIVOS = {
     'C1': 'Objetivo del Componente 1 (editar según institucional).',
     'C2': 'Objetivo del Componente 2 (editar según institucional).',
@@ -133,8 +142,12 @@
     'C4': [ 'Indicador 4.1 (nuevo)', 'Indicador 4.2 (nuevo)' ]
   };
 
+  // ===== Utilidades de normalización =====
   function monthToMM(mesTxt) {
-    const mapa = { 'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12' };
+    const mapa = {
+      'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
+      'julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'
+    };
     if (!mesTxt) return '';
     return (mapa[String(mesTxt).trim().toLowerCase()] || '').padStart(2,'0');
   }
@@ -144,13 +157,18 @@
       .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
       .toLowerCase();
   }
+  function compLabelToCode(lbl){
+    const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i);
+    return m ? `C${m[1]}` : String(lbl||'').toUpperCase();
+  }
   function normalizePayload(raw) {
     const out = {};
     Object.keys(raw).forEach(k => { out[ pascalToSnake(k) ] = raw[k]; });
 
-    if (raw.Mes || out.mes) {
-      out.mes = monthToMM(raw.Mes || out.mes);
-    }
+    // Mes → "01".."12"
+    if (raw.Mes || out.mes) out.mes = monthToMM(raw.Mes || out.mes);
+
+    // Componente → "C1".."C4"
     if (raw.Componente || out.componente) {
       const v = String(raw.Componente || out.componente).trim().toUpperCase();
       const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
@@ -159,32 +177,33 @@
     return out;
   }
 
+  // ===== Elementos de UI =====
   const formEl = document.getElementById('formEl');
   const statusEl = document.getElementById('status');
   const selComp = document.getElementById('componente');
   const txtObjetivo = document.getElementById('objetivo');
   const selIndicador = document.getElementById('indicador');
 
-  function compLabelToCode(lbl){
-    const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i);
-    return m ? `C${m[1]}` : String(lbl||'').toUpperCase();
-  }
-
   function recargarObjetivoEIndicadores() {
     const code = compLabelToCode(selComp.value);
     txtObjetivo.value = OBJETIVOS[code] || '';
     selIndicador.innerHTML = '<option value="">Seleccione…</option>' + (INDICADORES[code]||[]).map(i=>`<option>${i}</option>`).join('');
   }
+
+  // Inicializaciones ligeras (NO hay fetch aquí)
   selComp.addEventListener('change', recargarObjetivoEIndicadores);
   document.getElementById('btnReset').addEventListener('click', () => {
     formEl.reset();
     recargarObjetivoEIndicadores();
     statusEl.textContent = '';
+    statusEl.className = 'help';
   });
 
+  // ===== Envío =====
   formEl.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    statusEl.textContent = 'Enviando…'; statusEl.className = 'help';
+    statusEl.textContent = 'Enviando…';
+    statusEl.className = 'help';
 
     const raw = {
       AnioGestion: document.querySelector('#anio_gestion').value,
@@ -208,247 +227,29 @@
 
     try {
       const res = await fetch('/api/submit', {
-        method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
       });
+
+      // Lee como texto para evitar fallos si backend devuelve HTML por error
       const txt = await res.text();
+
       if (!res.ok) throw new Error(txt || 'Error desconocido');
+
+      // Éxito
       formEl.reset();
       recargarObjetivoEIndicadores();
-      statusEl.textContent = 'Registro enviado correctamente.';
+      statusEl.textContent = '✅ Registro enviado correctamente.';
       statusEl.className = 'help ok';
-    } catch(err) {
-      statusEl.textContent = 'Error al enviar: ' + err.message;
+    } catch (err) {
+      statusEl.textContent = '❌ Error al enviar: ' + (err?.message || String(err));
       statusEl.className = 'help err';
     }
   });
+
+  // Deja preparado el objetivo/indicadores si ya hay un valor seleccionado
+  recargarObjetivoEIndicadores();
   </script>
 </body>
 </html>
-```
-
----
-
-# 2) `functions/api/submit.js`
-
-> Cloudflare Pages Functions (ruta `/api/submit`). Normaliza `snake_case`, convierte `mes` a `"01".."12"`, admite `C4` y envía a Supabase vía REST. Requiere `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables de entorno del proyecto. Ajusta el nombre de la tabla si no es `datos`.
-
-```js
-// functions/api/submit.js
-
-const COMP_OK = ['C1','C2','C3','C4'];
-
-function monthToMM(v){
-  if (!v) return '';
-  const mapa = { enero:'01', febrero:'02', marzo:'03', abril:'04', mayo:'05', junio:'06', julio:'07', agosto:'08', septiembre:'09', setiembre:'09', octubre:'10', noviembre:'11', diciembre:'12' };
-  const s = String(v).trim().toLowerCase();
-  if (/^(0[1-9]|1[0-2])$/.test(s)) return s; // ya es "01".."12"
-  return mapa[s] || '';
-}
-function pascalToSnake(key){
-  return key.replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/([A-Z])([A-Z][a-z])/g,'$1_$2').toLowerCase();
-}
-function normalizeIncoming(obj){
-  const out = {};
-  for (const k in obj) out[pascalToSnake(k)] = obj[k];
-  // mes
-  if (out.mes) out.mes = monthToMM(out.mes);
-  // componente
-  if (out.componente){
-    const v = String(out.componente).trim().toUpperCase();
-    const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
-    out.componente = m ? `C${m[1]}` : v;
-  }
-  return out;
-}
-function bad(msg){ return new Response(msg, { status:400 }); }
-
-export async function onRequestPost({ request, env }) {
-  const { SUPABASE_URL, SUPABASE_ANON_KEY } = env;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return new Response('Faltan variables SUPABASE_URL/SUPABASE_ANON_KEY', { status: 500 });
-  }
-
-  let incoming;
-  try { incoming = await request.json(); } catch {
-    return bad('JSON inválido');
-  }
-  const data = normalizeIncoming(incoming);
-
-  if (!data.anio_gestion) return bad('anio_gestion requerido');
-  if (!data.mes || !/^(0[1-9]|1[0-2])$/.test(data.mes)) return bad('mes inválido; use "01".."12"');
-  if (!data.componente || !COMP_OK.includes(data.componente)) return bad('componente inválido (use C1..C4)');
-
-  // Inserción vía REST
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/datos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify([data])
-    });
-    const body = await resp.text();
-    if (!resp.ok) {
-      return new Response(body || 'Error al insertar en Supabase', { status: 500 });
-    }
-    return new Response(body || JSON.stringify({ ok:true }), { status: 200, headers: { 'Content-Type':'application/json' } });
-  } catch (e) {
-    return new Response('Fallo de red al insertar en Supabase: ' + e.message, { status: 500 });
-  }
-}
-```
-
----
-
-# 3) `system-proigualdad/index.html` (Dashboard)
-
-> Incluye **COMPONENTE 4** en filtros y en el render. Supone un endpoint existente `/api/list` que devuelve filas con los campos normalizados (ej.: `componente`, `mes`, `porcentaje_cumplimiento`, etc.). Si usas otra ruta, ajusta `DATA_URL`.
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ProIgualdad – Dashboard</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; margin: 0; background:#0b0b0c; color:#111; }
-    header { background:#111827; color:#fff; padding:1rem; }
-    main { padding:1rem; max-width:1200px; margin:0 auto; }
-    .panel { display:grid; grid-template-columns: 280px 1fr; gap:1rem; }
-    .side { background:#fff; border-radius:12px; padding:1rem; border:1px solid #e5e7eb; }
-    .content { background:#fff; border-radius:12px; padding:1rem; border:1px solid #e5e7eb; }
-    .chip { display:inline-block; padding:.35rem .6rem; border:1px solid #e5e7eb; border-radius:999px; margin:.15rem; cursor:pointer; user-select:none; }
-    .chip.active { background:#111827; color:#fff; border-color:#111827; }
-    canvas { width:100%; height:380px; }
-    table { width:100%; border-collapse: collapse; font-size:.92rem; margin-top:1rem; }
-    th, td { border:1px solid #e5e7eb; padding:.5rem .6rem; text-align:left; }
-    th { background:#f3f4f6; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1 style="margin:0; font-size:1.1rem;">Sistema ProIgualdad – Dashboard</h1>
-  </header>
-  <main>
-    <div class="panel">
-      <aside class="side">
-        <h3 style="margin-top:0">Filtros</h3>
-        <div id="chips"></div>
-        <hr/>
-        <label for="anio">Año</label>
-        <select id="anio"></select>
-      </aside>
-      <section class="content">
-        <h3 style="margin-top:0" id="title"></h3>
-        <canvas id="chart"></canvas>
-        <div id="tabla"></div>
-      </section>
-    </div>
-  </main>
-
-  <script>
-  // Configuración
-  const DATA_URL = '/api/list'; // ajusta si tu endpoint difiere
-  const COMPONENTES = ['COMPONENTE 1','COMPONENTE 2','COMPONENTE 3','COMPONENTE 4'];
-
-  // Utilidades
-  function labelToCode(lbl){ const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i); return m ? `C${m[1]}` : 'C1'; }
-  const MESES = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-
-  // Estado UI
-  const ui = { compLabel: 'COMPONENTE 1', anio: null, rows: [] };
-
-  // Render chips
-  const chipsEl = document.getElementById('chips');
-  COMPONENTES.forEach(lbl => {
-    const el = document.createElement('span');
-    el.className = 'chip' + (lbl===ui.compLabel ? ' active' : '');
-    el.textContent = lbl;
-    el.onclick = () => { ui.compLabel = lbl; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); render(); };
-    chipsEl.appendChild(el);
-  });
-
-  // Carga de datos
-  async function loadData(){
-    const res = await fetch(DATA_URL);
-    if (!res.ok) throw new Error('No se pudo cargar datos');
-    const data = await res.json();
-    ui.rows = Array.isArray(data) ? data : (data?.rows || []);
-    // años para selector
-    const anios = Array.from(new Set(ui.rows.map(r => r.anio_gestion))).filter(Boolean).sort();
-    const sel = document.getElementById('anio'); sel.innerHTML = '';
-    anios.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
-    ui.anio = anios[anios.length-1] || new Date().getFullYear(); sel.value = ui.anio;
-    sel.onchange = () => { ui.anio = sel.value; render(); };
-  }
-
-  // Gráfico con Chart.js sin CDN (simple placeholder de barras con canvas nativo si no hay Chart.js)
-  let chartApi = null;
-  function drawBars(canvas, labels, values){
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width = canvas.clientWidth * devicePixelRatio;
-    const H = canvas.height = canvas.clientHeight * devicePixelRatio;
-    ctx.clearRect(0,0,W,H);
-    const max = Math.max(1, ...values);
-    const pad = 40*devicePixelRatio;
-    const barW = (W - pad*2) / (labels.length*1.2);
-    values.forEach((v,i)=>{
-      const x = pad + i*(barW*1.2);
-      const h = (H - pad*2) * (v/max);
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(x, H-pad-h, barW, h);
-    });
-    // Ejes simples
-    ctx.strokeStyle = '#9ca3af';
-    ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
-  }
-
-  // Render principal
-  function render(){
-    const comp = labelToCode(ui.compLabel); // C1..C4
-    const rows = ui.rows.filter(r => r.componente === comp && String(r.anio_gestion) === String(ui.anio));
-
-    // Agregación por mes (usa porcentaje_cumplimiento si existe; si no, usa avance o meta)
-    const porMes = {}; MESES.forEach(m => porMes[m] = 0);
-    rows.forEach(r => {
-      const m = r.mes; if (!MESES.includes(m)) return;
-      const val = Number(r.porcentaje_cumplimiento ?? r.avance ?? 0);
-      porMes[m] += isNaN(val) ? 0 : val;
-    });
-    const labels = MESES; const values = labels.map(m => porMes[m]);
-
-    // Título
-    document.getElementById('title').textContent = `${ui.compLabel} – ${ui.anio}`;
-
-    // Gráfico
-    const canvas = document.getElementById('chart');
-    drawBars(canvas, labels, values);
-
-    // Tabla
-    const tbl = [`<table><thead><tr><th>Mes</th><th>Indicador</th><th>Actividad</th><th>Avance</th><th>% Cumpl.</th><th>Estado</th></tr></thead><tbody>`];
-    rows
-      .sort((a,b)=> String(a.mes).localeCompare(String(b.mes)))
-      .forEach(r => {
-        tbl.push(`<tr>
-          <td>${r.mes}</td>
-          <td>${r.indicador ?? ''}</td>
-          <td>${r.actividad_principal ?? ''}</td>
-          <td>${r.avance ?? ''}</td>
-          <td>${r.porcentaje_cumplimiento ?? ''}</td>
-          <td>${r.estado ?? ''}</td>
-        </tr>`);
-      });
-    tbl.push('</tbody></table>');
-    document.getElementById('tabla').innerHTML = tbl.join('');
-  }
-
-  // Init
-  (async()=>{ try { await loadData(); render(); } catch(e){ alert('Error cargando datos: '+e.message); } })();
-  </script>
-</body>
-</html>
-```
