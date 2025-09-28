@@ -9,16 +9,19 @@
     * { box-sizing: border-box; }
     html, body { margin:0; padding:0; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background:#0b0b0c; }
+
     .wrap { max-width: 1024px; margin: 0 auto; padding: 20px; }
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
     h1 { margin: 0 0 14px; font-size: 1.25rem; color:#111827; }
 
     /* Grid fluido y sin solapes */
     .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
     .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; }
     .col-5 { grid-column: span 5; } .col-6 { grid-column: span 6; }
-    .col-7 { grid-column: span 7; } .col-12 { grid-column: span 12; }
-    @media (max-width: 900px) { .col-3, .col-4, .col-5, .col-6, .col-7 { grid-column: span 12; } }
+    .col-7 { grid-column: span 7; } .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+    @media (max-width: 900px) { .col-3, .col-4, .col-5, .col-6, .col-7, .col-8 { grid-column: span 12; } }
 
     .form-group { margin-bottom: 14px; }
     label { display:block; font-size:.88rem; color:#374151; margin: 2px 0 6px; }
@@ -29,8 +32,14 @@
     textarea[readonly] { background:#f9fafb; color:#111827; }
     .help { font-size:.82rem; color:#6b7280; margin-top:4px; }
     .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .btn { appearance:none; border:0; cursor:pointer; padding:.7rem 1rem; border-radius:12px; font-weight:600; background:#111827; color:#fff; }
+
+    .btn {
+      appearance:none; border:0; cursor:pointer;
+      padding:.7rem 1rem; border-radius:12px;
+      font-weight:600; background:#111827; color:#fff;
+    }
     .btn.secondary { background:#6b7280; }
+
     .status { margin-top:10px; font-size:.9rem; }
     .ok  { color:#065f46; }
     .err { color:#b91c1c; }
@@ -76,12 +85,17 @@
             <textarea id="objetivo" rows="3" readonly placeholder="Se autocompleta según el componente…"></textarea>
           </div>
 
-          <div class="col-12 form-group">
+          <!-- Indicador + Meta del indicador (misma fila) -->
+          <div class="col-8 form-group">
             <label for="indicador">Indicador</label>
             <select id="indicador" required>
               <option value="">Seleccione…</option>
             </select>
-            <div class="help">Catálogo por componente. Se envía el texto completo del indicador.</div>
+            <div class="help">Se envía el texto completo del indicador.</div>
+          </div>
+          <div class="col-4 form-group">
+            <label for="meta">Meta del indicador</label>
+            <input id="meta" type="number" step="any" placeholder="Ej.: 35, 6, 1" />
           </div>
 
           <div class="col-6 form-group">
@@ -103,19 +117,11 @@
             <textarea id="descripcion" rows="3" required placeholder="Describe la actividad, producto, alcance…"></textarea>
           </div>
 
+          <!-- Nueva distribución: Responsable + % Cumplimiento + Estado -->
           <div class="col-4 form-group">
             <label for="responsable">Responsable</label>
             <input id="responsable" />
           </div>
-          <div class="col-4 form-group">
-            <label for="meta">Meta</label>
-            <input id="meta" type="number" step="any" />
-          </div>
-          <div class="col-4 form-group">
-            <label for="avance">Avance</label>
-            <input id="avance" type="number" step="any" />
-          </div>
-
           <div class="col-4 form-group">
             <label for="porcentaje_cumplimiento">% Cumplimiento</label>
             <input id="porcentaje_cumplimiento" type="number" step="any" min="0" max="100" />
@@ -129,7 +135,9 @@
               <option value="Retrasado">Retrasado</option>
             </select>
           </div>
-          <div class="col-4 form-group">
+
+          <!-- Evidencia a ancho completo para mejor uso -->
+          <div class="col-12 form-group">
             <label for="evidencia_url">Evidencia (URL)</label>
             <input id="evidencia_url" type="url" placeholder="https://…" />
           </div>
@@ -258,16 +266,16 @@
       Componente: selComp.value,
       Objetivo: txtObjetivo.value,
       Indicador: selIndicador.value, // texto completo
+      Meta: document.querySelector('#meta').value, // meta del indicador (mismo campo 'meta' en BD)
       ActividadPrincipal: document.querySelector('#actividad_principal').value,
       Subactividad: document.querySelector('#subactividad').value,
       TareaEspecifica: document.querySelector('#tarea_especifica').value,
       Descripcion: document.querySelector('#descripcion').value,   // requerido
       Responsable: document.querySelector('#responsable').value,
-      Meta: document.querySelector('#meta').value,
-      Avance: document.querySelector('#avance').value,
       PorcentajeCumplimiento: document.querySelector('#porcentaje_cumplimiento').value,
       Estado: document.querySelector('#estado').value,
       EvidenciaUrl: document.querySelector('#evidencia_url').value
+      // Avance eliminado
     };
 
     if (!raw.Descripcion || !raw.Descripcion.trim()) {
