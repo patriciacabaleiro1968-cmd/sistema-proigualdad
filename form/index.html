@@ -9,55 +9,31 @@
     * { box-sizing: border-box; }
     html, body { margin:0; padding:0; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background:#0b0b0c; }
-
     .wrap { max-width: 1024px; margin: 0 auto; padding: 20px; }
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-
     h1 { margin: 0 0 14px; font-size: 1.25rem; color:#111827; }
 
     /* Grid fluido y sin solapes */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 12px;
-    }
-    .col-3 { grid-column: span 3; }
-    .col-4 { grid-column: span 4; }
-    .col-5 { grid-column: span 5; }
-    .col-6 { grid-column: span 6; }
-    .col-7 { grid-column: span 7; }
-    .col-12 { grid-column: span 12; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+    .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; }
+    .col-5 { grid-column: span 5; } .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; } .col-12 { grid-column: span 12; }
+    @media (max-width: 900px) { .col-3, .col-4, .col-5, .col-6, .col-7 { grid-column: span 12; } }
 
-    @media (max-width: 900px) {
-      .col-3, .col-4, .col-5, .col-6, .col-7 { grid-column: span 12; }
-    }
-
+    .form-group { margin-bottom: 14px; }
     label { display:block; font-size:.88rem; color:#374151; margin: 2px 0 6px; }
     input, select, textarea {
-      width: 100%;
-      font-size: .95rem;
-      padding: .6rem .65rem;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      background: #fff;
+      width: 100%; font-size: .95rem; padding: .6rem .65rem;
+      border: 1px solid #d1d5db; border-radius: 10px; background: #fff;
     }
     textarea[readonly] { background:#f9fafb; color:#111827; }
     .help { font-size:.82rem; color:#6b7280; margin-top:4px; }
     .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-
-    .btn {
-      appearance:none; border:0; cursor:pointer;
-      padding:.7rem 1rem; border-radius:12px;
-      font-weight:600; background:#111827; color:#fff;
-    }
+    .btn { appearance:none; border:0; cursor:pointer; padding:.7rem 1rem; border-radius:12px; font-weight:600; background:#111827; color:#fff; }
     .btn.secondary { background:#6b7280; }
-
     .status { margin-top:10px; font-size:.9rem; }
     .ok  { color:#065f46; }
     .err { color:#b91c1c; }
-
-    /* Mantener buen espacio vertical entre bloques */
-    .form-group { margin-bottom: 14px; }
   </style>
 </head>
 <body>
@@ -67,7 +43,6 @@
 
       <form id="formEl" aria-describedby="status">
         <div class="grid">
-
           <div class="col-3 form-group">
             <label for="anio_gestion">Año de gestión</label>
             <input id="anio_gestion" type="number" min="2024" max="2035" required />
@@ -93,12 +68,12 @@
               <option>COMPONENTE 3</option>
               <option>COMPONENTE 4</option>
             </select>
-            <div class="help">El componente se normaliza a C1..C4 al enviar.</div>
+            <div class="help">Se normaliza a C1..C4 al enviar.</div>
           </div>
 
           <div class="col-12 form-group">
             <label for="objetivo">Objetivo del componente (autocompletado)</label>
-            <textarea id="objetivo" rows="2" readonly placeholder="Se autocompleta según el componente…"></textarea>
+            <textarea id="objetivo" rows="3" readonly placeholder="Se autocompleta según el componente…"></textarea>
           </div>
 
           <div class="col-12 form-group">
@@ -113,7 +88,6 @@
             <label for="actividad_principal">Actividad principal</label>
             <input id="actividad_principal" required />
           </div>
-
           <div class="col-6 form-group">
             <label for="subactividad">Subactividad</label>
             <input id="subactividad" />
@@ -133,12 +107,10 @@
             <label for="responsable">Responsable</label>
             <input id="responsable" />
           </div>
-
           <div class="col-4 form-group">
             <label for="meta">Meta</label>
             <input id="meta" type="number" step="any" />
           </div>
-
           <div class="col-4 form-group">
             <label for="avance">Avance</label>
             <input id="avance" type="number" step="any" />
@@ -148,7 +120,6 @@
             <label for="porcentaje_cumplimiento">% Cumplimiento</label>
             <input id="porcentaje_cumplimiento" type="number" step="any" min="0" max="100" />
           </div>
-
           <div class="col-4 form-group">
             <label for="estado">Estado</label>
             <select id="estado">
@@ -158,7 +129,6 @@
               <option value="Retrasado">Retrasado</option>
             </select>
           </div>
-
           <div class="col-4 form-group">
             <label for="evidencia_url">Evidencia (URL)</label>
             <input id="evidencia_url" type="url" placeholder="https://…" />
@@ -176,32 +146,30 @@
   </div>
 
   <script>
-  // ===== Catálogos por componente =====
-  // Objetivos por código (C1..C4)
+  // ===== Catálogos oficiales =====
   const OBJETIVOS = {
-    C1: 'Objetivo del Componente 1 (editar según institucional).',
-    C2: 'Objetivo del Componente 2 (editar según institucional).',
-    C3: 'Objetivo del Componente 3 (editar según institucional).',
-    C4: 'Objetivo del Componente 4 (nuevo).'
+    C1: 'Objetivo del Componente 1 Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.',
+    C2: 'Objetivo del Componente 2 La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.',
+    C3: 'Objetivo del Componente 3 Las competencias de actores de medios de comunicación de las instituciones públicas para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas.',
+    C4: 'Objetivo del Componente 4 El equipo ProIgualdad realiza la gestión y el seguimiento a las actividades del proyecto de manera eficiente y efectiva, en forma participativa con las entidades socias e informa a GIZ, BMZ.'
   };
 
-  // Indicadores: usa el TEXTO COMPLETO (lo que verá y lo que se enviará)
   const INDICADORES = {
     C1: [
-      'Indicador 1.1 — Texto descriptivo completo del indicador 1.1',
-      'Indicador 1.2 — Texto descriptivo completo del indicador 1.2'
+      'Indicador 1.1 - 5 metodologías educativas institucionalizadas en 3 DDE',
+      'Indicador 1.2 - 6 instrumentos de capacitación piloteados'
     ],
     C2: [
-      'Indicador 2.1 — Texto descriptivo completo del indicador 2.1',
-      'Indicador 2.2 — Texto descriptivo completo del indicador 2.2'
+      'Indicador 2.1 - 1 instrumento de implementación del sello con criterios ampliados',
+      'Indicador 2.2 - 5 buenas prácticas compartidas entre empresas'
     ],
     C3: [
-      'Indicador 3.1 — 38 productos mediáticos para sensibilizar al público…',
-      'Indicador 3.2 — Texto descriptivo completo del indicador 3.2'
+      'Indicador 3.1 - 35 productos mediáticos para sensibilización',
+      'Indicador 3.2 - 3 productos comunicacionales para servidores públicos'
     ],
     C4: [
-      'Indicador 4.1 — Texto completo del nuevo indicador 4.1',
-      'Indicador 4.2 — Texto completo del nuevo indicador 4.2'
+      'Indicador 4.1 - El proyecto ha emitido los informes de seguimiento y monitoreo establecidos.',
+      'Indicador 4.2 - La estructura de conducción del proyecto está en funcionamiento y se realizan las coordinaciones requeridas con las entidades socias.'
     ]
   };
 
@@ -237,7 +205,6 @@
       const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
       out.componente = m ? `C${m[1]}` : v;
     }
-
     return out;
   }
 
@@ -247,16 +214,28 @@
   const selComp = document.getElementById('componente');
   const txtObjetivo = document.getElementById('objetivo');
   const selIndicador = document.getElementById('indicador');
+  const anioEl = document.getElementById('anio_gestion');
 
-  // Poblado de objetivo + indicadores al cambiar componente
+  // Poblado seguro de opciones (evita innerHTML)
+  function setOptions(selectEl, items) {
+    while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
+    const opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = 'Seleccione…';
+    selectEl.appendChild(opt0);
+    (items || []).forEach(texto => {
+      const opt = document.createElement('option');
+      opt.value = texto;           // enviamos el texto completo
+      opt.textContent = texto;     // mostramos el texto completo
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // Autocompletado de objetivo + indicadores por componente
   function recargarObjetivoEIndicadores() {
     const code = compLabelToCode(selComp.value);
     txtObjetivo.value = OBJETIVOS[code] || '';
-    const lista = INDICADORES[code] || [];
-    selIndicador.innerHTML = '<option value="">Seleccione…</option>' +
-      lista.map(txt => `<option value="${encodeURIComponent(txt)}">${txt}</option>`).join('');
+    setOptions(selIndicador, INDICADORES[code] || []);
   }
-
   selComp.addEventListener('change', recargarObjetivoEIndicadores);
 
   // Reset limpio
@@ -273,15 +252,12 @@
     statusEl.textContent = 'Enviando…';
     statusEl.className = 'status';
 
-    // Decodifica valor del indicador (viene URI-encoded para evitar problemas con comillas)
-    const indicadorVal = selIndicador.value ? decodeURIComponent(selIndicador.value) : '';
-
     const raw = {
-      AnioGestion: document.querySelector('#anio_gestion').value,
+      AnioGestion: anioEl.value,
       Mes: document.querySelector('#mes').value,
-      Componente: document.querySelector('#componente').value,
-      Objetivo: document.querySelector('#objetivo').value,
-      Indicador: indicadorVal,
+      Componente: selComp.value,
+      Objetivo: txtObjetivo.value,
+      Indicador: selIndicador.value, // texto completo
       ActividadPrincipal: document.querySelector('#actividad_principal').value,
       Subactividad: document.querySelector('#subactividad').value,
       TareaEspecifica: document.querySelector('#tarea_especifica').value,
@@ -299,6 +275,11 @@
       statusEl.className = 'status err';
       return;
     }
+    if (!raw.Indicador) {
+      statusEl.textContent = '❌ Debe seleccionar un indicador.';
+      statusEl.className = 'status err';
+      return;
+    }
 
     const payload = normalizePayload(raw);
     if (!payload.evidencia_url) delete payload.evidencia_url;
@@ -309,8 +290,7 @@
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
-
-      const txt = await res.text();   // leemos como texto por seguridad
+      const txt = await res.text();
       if (!res.ok) throw new Error(txt || 'Error desconocido');
 
       formEl.reset();
@@ -323,8 +303,12 @@
     }
   });
 
-  // Inicialización: en caso de que haya un valor preseleccionado
-  recargarObjetivoEIndicadores();
+  // Inicialización: año por defecto y catálogos
+  (function init(){
+    const hoy = new Date();
+    anioEl.value = hoy.getFullYear();
+    recargarObjetivoEIndicadores();
+  })();
   </script>
 </body>
 </html>
