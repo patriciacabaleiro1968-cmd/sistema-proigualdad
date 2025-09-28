@@ -6,21 +6,58 @@
   <title>ProIgualdad – Captura de actividades</title>
   <style>
     :root { color-scheme: light; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; margin: 0; background:#0b0b0c; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px 18px 4px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
-    h1 { margin:.2rem 0 1rem; font-size:1.25rem; }
-    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:.75rem; }
-    .col-3{grid-column: span 3;} .col-4{grid-column: span 4;} .col-6{grid-column: span 6;} .col-12{grid-column: span 12;}
-    label{display:block; font-size:.86rem; color:#374151; margin-bottom:.25rem;}
-    input, select, textarea{ width:100%; font-size:.95rem; padding:.55rem .6rem; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
-    textarea[readonly]{ background:#f9fafb; color:#111827; }
-    .row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
-    .btn { appearance:none; border:0; background:#111827; color:#fff; padding:.65rem 1rem; border-radius:10px; cursor:pointer; font-weight:600; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background:#0b0b0c; }
+
+    .wrap { max-width: 1024px; margin: 0 auto; padding: 20px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+    h1 { margin: 0 0 14px; font-size: 1.25rem; color:#111827; }
+
+    /* Grid fluido y sin solapes */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+    }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-5 { grid-column: span 5; }
+    .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; }
+    .col-12 { grid-column: span 12; }
+
+    @media (max-width: 900px) {
+      .col-3, .col-4, .col-5, .col-6, .col-7 { grid-column: span 12; }
+    }
+
+    label { display:block; font-size:.88rem; color:#374151; margin: 2px 0 6px; }
+    input, select, textarea {
+      width: 100%;
+      font-size: .95rem;
+      padding: .6rem .65rem;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+    }
+    textarea[readonly] { background:#f9fafb; color:#111827; }
+    .help { font-size:.82rem; color:#6b7280; margin-top:4px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    .btn {
+      appearance:none; border:0; cursor:pointer;
+      padding:.7rem 1rem; border-radius:12px;
+      font-weight:600; background:#111827; color:#fff;
+    }
     .btn.secondary { background:#6b7280; }
-    .help { font-size:.82rem; color:#6b7280; }
-    .ok { color:#065f46; font-weight:600; }
-    .err { color:#b91c1c; font-weight:600; }
+
+    .status { margin-top:10px; font-size:.9rem; }
+    .ok  { color:#065f46; }
+    .err { color:#b91c1c; }
+
+    /* Mantener buen espacio vertical entre bloques */
+    .form-group { margin-bottom: 14px; }
   </style>
 </head>
 <body>
@@ -30,12 +67,13 @@
 
       <form id="formEl" aria-describedby="status">
         <div class="grid">
-          <div class="col-3">
+
+          <div class="col-3 form-group">
             <label for="anio_gestion">Año de gestión</label>
-            <input id="anio_gestion" type="number" min="2024" max="2030" required />
+            <input id="anio_gestion" type="number" min="2024" max="2035" required />
           </div>
 
-          <div class="col-3">
+          <div class="col-3 form-group">
             <label for="mes">Mes</label>
             <select id="mes" required>
               <option value="">Seleccione…</option>
@@ -46,7 +84,7 @@
             <div class="help">Se convertirá automáticamente a “01”..“12”.</div>
           </div>
 
-          <div class="col-6">
+          <div class="col-6 form-group">
             <label for="componente">Componente</label>
             <select id="componente" required>
               <option value="">Seleccione…</option>
@@ -55,59 +93,63 @@
               <option>COMPONENTE 3</option>
               <option>COMPONENTE 4</option>
             </select>
+            <div class="help">El componente se normaliza a C1..C4 al enviar.</div>
           </div>
 
-          <div class="col-12">
+          <div class="col-12 form-group">
             <label for="objetivo">Objetivo del componente (autocompletado)</label>
             <textarea id="objetivo" rows="2" readonly placeholder="Se autocompleta según el componente…"></textarea>
           </div>
 
-          <div class="col-12">
+          <div class="col-12 form-group">
             <label for="indicador">Indicador</label>
             <select id="indicador" required>
               <option value="">Seleccione…</option>
             </select>
-            <div class="help">El catálogo de indicadores se carga según el componente elegido.</div>
+            <div class="help">Catálogo por componente. Se envía el texto completo del indicador.</div>
           </div>
 
-          <div class="col-6">
+          <div class="col-6 form-group">
             <label for="actividad_principal">Actividad principal</label>
             <input id="actividad_principal" required />
           </div>
-          <div class="col-6">
+
+          <div class="col-6 form-group">
             <label for="subactividad">Subactividad</label>
             <input id="subactividad" />
           </div>
 
-          <div class="col-12">
+          <div class="col-12 form-group">
             <label for="tarea_especifica">Tarea específica</label>
             <input id="tarea_especifica" />
           </div>
 
-          <!-- NUEVO: Descripción obligatoria -->
-          <div class="col-12">
+          <div class="col-12 form-group">
             <label for="descripcion">Descripción <span class="help">(requerido)</span></label>
             <textarea id="descripcion" rows="3" required placeholder="Describe la actividad, producto, alcance…"></textarea>
           </div>
 
-          <div class="col-4">
+          <div class="col-4 form-group">
             <label for="responsable">Responsable</label>
             <input id="responsable" />
           </div>
-          <div class="col-4">
+
+          <div class="col-4 form-group">
             <label for="meta">Meta</label>
             <input id="meta" type="number" step="any" />
           </div>
-          <div class="col-4">
+
+          <div class="col-4 form-group">
             <label for="avance">Avance</label>
             <input id="avance" type="number" step="any" />
           </div>
 
-          <div class="col-4">
+          <div class="col-4 form-group">
             <label for="porcentaje_cumplimiento">% Cumplimiento</label>
             <input id="porcentaje_cumplimiento" type="number" step="any" min="0" max="100" />
           </div>
-          <div class="col-4">
+
+          <div class="col-4 form-group">
             <label for="estado">Estado</label>
             <select id="estado">
               <option value="Planificado">Planificado</option>
@@ -116,45 +158,67 @@
               <option value="Retrasado">Retrasado</option>
             </select>
           </div>
-          <div class="col-4">
+
+          <div class="col-4 form-group">
             <label for="evidencia_url">Evidencia (URL)</label>
             <input id="evidencia_url" type="url" placeholder="https://…" />
           </div>
 
-          <div class="col-12 row" style="justify-content:flex-end; margin-top:.5rem;">
+          <div class="col-12 row" style="justify-content:flex-end;">
             <button type="button" class="btn secondary" id="btnReset">Limpiar</button>
             <button type="submit" class="btn">Enviar</button>
           </div>
         </div>
       </form>
 
-      <p id="status" class="help" role="status" aria-live="polite" style="margin-top:.75rem;"></p>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
     </div>
   </div>
 
   <script>
-  // ===== Catálogo por componente =====
+  // ===== Catálogos por componente =====
+  // Objetivos por código (C1..C4)
   const OBJETIVOS = {
-    'C1': 'Objetivo del Componente 1 (editar según institucional).',
-    'C2': 'Objetivo del Componente 2 (editar según institucional).',
-    'C3': 'Objetivo del Componente 3 (editar según institucional).',
-    'C4': 'Objetivo del Componente 4 (nuevo).'
+    C1: 'Objetivo del Componente 1 (editar según institucional).',
+    C2: 'Objetivo del Componente 2 (editar según institucional).',
+    C3: 'Objetivo del Componente 3 (editar según institucional).',
+    C4: 'Objetivo del Componente 4 (nuevo).'
   };
+
+  // Indicadores: usa el TEXTO COMPLETO (lo que verá y lo que se enviará)
   const INDICADORES = {
-    'C1': [ 'Indicador 1.1', 'Indicador 1.2' ],
-    'C2': [ 'Indicador 2.1', 'Indicador 2.2' ],
-    'C3': [ 'Indicador 3.1', 'Indicador 3.2' ],
-    'C4': [ 'Indicador 4.1 (nuevo)', 'Indicador 4.2 (nuevo)' ]
+    C1: [
+      'Indicador 1.1 — Texto descriptivo completo del indicador 1.1',
+      'Indicador 1.2 — Texto descriptivo completo del indicador 1.2'
+    ],
+    C2: [
+      'Indicador 2.1 — Texto descriptivo completo del indicador 2.1',
+      'Indicador 2.2 — Texto descriptivo completo del indicador 2.2'
+    ],
+    C3: [
+      'Indicador 3.1 — 38 productos mediáticos para sensibilizar al público…',
+      'Indicador 3.2 — Texto descriptivo completo del indicador 3.2'
+    ],
+    C4: [
+      'Indicador 4.1 — Texto completo del nuevo indicador 4.1',
+      'Indicador 4.2 — Texto completo del nuevo indicador 4.2'
+    ]
   };
 
   // ===== Utilidades =====
   function monthToMM(mesTxt) {
-    const mapa = { 'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12' };
+    const mapa = {
+      'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
+      'julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'
+    };
     if (!mesTxt) return '';
     return (mapa[String(mesTxt).trim().toLowerCase()] || '').padStart(2,'0');
   }
   function pascalToSnake(key) {
-    return key.replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/([A-Z])([A-Z][a-z])/g,'$1_$2').toLowerCase();
+    return key
+      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
+      .toLowerCase();
   }
   function compLabelToCode(lbl){
     const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i);
@@ -162,54 +226,66 @@
   }
   function normalizePayload(raw) {
     const out = {};
-    Object.keys(raw).forEach(k => { out[ pascalToSnake(k) ] = raw[k]; });
+    Object.keys(raw).forEach(k => out[pascalToSnake(k)] = raw[k]);
 
+    // Mes → "01".."12"
     if (raw.Mes || out.mes) out.mes = monthToMM(raw.Mes || out.mes);
+
+    // Componente → "C1".."C4"
     if (raw.Componente || out.componente) {
       const v = String(raw.Componente || out.componente).trim().toUpperCase();
       const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
       out.componente = m ? `C${m[1]}` : v;
     }
+
     return out;
   }
 
-  // ===== UI =====
+  // ===== Elementos =====
   const formEl = document.getElementById('formEl');
   const statusEl = document.getElementById('status');
   const selComp = document.getElementById('componente');
   const txtObjetivo = document.getElementById('objetivo');
   const selIndicador = document.getElementById('indicador');
 
+  // Poblado de objetivo + indicadores al cambiar componente
   function recargarObjetivoEIndicadores() {
     const code = compLabelToCode(selComp.value);
     txtObjetivo.value = OBJETIVOS[code] || '';
-    selIndicador.innerHTML = '<option value="">Seleccione…</option>' + (INDICADORES[code]||[]).map(i=>`<option>${i}</option>`).join('');
+    const lista = INDICADORES[code] || [];
+    selIndicador.innerHTML = '<option value="">Seleccione…</option>' +
+      lista.map(txt => `<option value="${encodeURIComponent(txt)}">${txt}</option>`).join('');
   }
+
   selComp.addEventListener('change', recargarObjetivoEIndicadores);
 
+  // Reset limpio
   document.getElementById('btnReset').addEventListener('click', () => {
     formEl.reset();
     recargarObjetivoEIndicadores();
     statusEl.textContent = '';
-    statusEl.className = 'help';
+    statusEl.className = 'status';
   });
 
   // ===== Envío =====
   formEl.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     statusEl.textContent = 'Enviando…';
-    statusEl.className = 'help';
+    statusEl.className = 'status';
+
+    // Decodifica valor del indicador (viene URI-encoded para evitar problemas con comillas)
+    const indicadorVal = selIndicador.value ? decodeURIComponent(selIndicador.value) : '';
 
     const raw = {
       AnioGestion: document.querySelector('#anio_gestion').value,
       Mes: document.querySelector('#mes').value,
       Componente: document.querySelector('#componente').value,
       Objetivo: document.querySelector('#objetivo').value,
-      Indicador: document.querySelector('#indicador').value,
+      Indicador: indicadorVal,
       ActividadPrincipal: document.querySelector('#actividad_principal').value,
       Subactividad: document.querySelector('#subactividad').value,
       TareaEspecifica: document.querySelector('#tarea_especifica').value,
-      Descripcion: document.querySelector('#descripcion').value,   // <<<<<<<<<< esencial
+      Descripcion: document.querySelector('#descripcion').value,   // requerido
       Responsable: document.querySelector('#responsable').value,
       Meta: document.querySelector('#meta').value,
       Avance: document.querySelector('#avance').value,
@@ -218,10 +294,9 @@
       EvidenciaUrl: document.querySelector('#evidencia_url').value
     };
 
-    // Validación rápida de front para descripcion
     if (!raw.Descripcion || !raw.Descripcion.trim()) {
       statusEl.textContent = '❌ La descripción es obligatoria.';
-      statusEl.className = 'help err';
+      statusEl.className = 'status err';
       return;
     }
 
@@ -234,19 +309,21 @@
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
-      const txt = await res.text();
+
+      const txt = await res.text();   // leemos como texto por seguridad
       if (!res.ok) throw new Error(txt || 'Error desconocido');
 
       formEl.reset();
       recargarObjetivoEIndicadores();
       statusEl.textContent = '✅ Registro enviado correctamente.';
-      statusEl.className = 'help ok';
+      statusEl.className = 'status ok';
     } catch (err) {
       statusEl.textContent = '❌ Error al enviar: ' + (err?.message || String(err));
-      statusEl.className = 'help err';
+      statusEl.className = 'status err';
     }
   });
 
+  // Inicialización: en caso de que haya un valor preseleccionado
   recargarObjetivoEIndicadores();
   </script>
 </body>
