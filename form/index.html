@@ -70,21 +70,13 @@
             <label class="form-label required">Componente
               <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Elija el componente."></i>
             </label>
-            <!-- value = C1/C2/C3 para cumplir con la tabla de Supabase -->
+            <!-- value = C1/C2/C3/C4 para cumplir con la tabla de Supabase -->
             <select id="componente" class="form-select" required>
               <option value="" selected disabled>Seleccione…</option>
-
-              <option value="C1" title="Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.">
-                COMPONENTE 1: Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes.
-              </option>
-
-              <option value="C2" title="La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.">
-                COMPONENTE 2: La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida.
-              </option>
-
-              <option value="C3" title="Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas">
-                COMPONENTE 3: Las competencias de actores de medios de comunicación y de las instituciones públicas relevantes para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas
-              </option>
+              <option value="C1">COMPONENTE 1</option>
+              <option value="C2">COMPONENTE 2</option>
+              <option value="C3">COMPONENTE 3</option>
+              <option value="C4">COMPONENTE 4</option>
             </select>
             <div class="invalid-feedback">Seleccione un componente.</div>
           </div>
@@ -92,12 +84,10 @@
           <!-- Objetivo dependiente -->
           <div class="col-md-6">
             <label class="form-label required">Objetivo del componente
-              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Seleccione el objetivo específico del componente al que corresponde la actividad."></i>
+              <i class="fa-solid fa-circle-info info" data-bs-toggle="tooltip" title="Este objetivo se completa automáticamente según el componente seleccionado."></i>
             </label>
-            <select id="objetivo" class="form-select" required disabled>
-              <option value="" selected disabled>Seleccione…</option>
-            </select>
-            <div class="invalid-feedback">Seleccione un objetivo.</div>
+            <textarea id="objetivo" class="form-control" rows="6" required readonly placeholder="Seleccione un componente para ver su objetivo"></textarea>
+            <div class="invalid-feedback">El objetivo es obligatorio.</div>
           </div>
 
           <!-- Indicador dependiente -->
@@ -163,25 +153,32 @@
     const ENDPOINT_URL = '/api/submit'; // Pages Function
     const MAX_WORDS = 300;
 
-    // Catálogo (clave por C1/C2/C3 para cumplir con DB; texto largo visible en UI)
+    // Catálogo (clave por C1/C2/C3/C4 para cumplir con DB; texto largo visible en UI)
     const CATALOGO = {
       C1: {
-        'Objetivo del Componente 1': [
+        objetivo: 'Principios de igualdad de género y derechos LGBTIA son aplicados en la práctica docente de docentes con niños/as, adolescentes y madres/padres en las escuelas de educación primaria y secundaria y en los planes curriculares de las escuelas/unidades para la capacitación o formación continua de docentes',
+        indicadores: [
           'Indicador 1.1: 5 metodologías educativas para el fomento de la igualdad de género y los derechos LGBTIA con niños/as, adolescentes y padres y madres de familia en 2 escuelas primarias y secundarias por cada uno de los 3 departamentos fueron piloteadas.',
           'Indicador 1.2: 6 instrumentos de capacitación o formación continua que fomentan la igualdad de género y los derechos LGBTIA fueron piloteadas en los planes curriculares de las escuelas/unidades para la capacitación y formación continua del personal docente.'
         ]
       },
       C2: {
-        'Objetivo del Componente 2': [
+        objetivo: 'La aplicación de estándares de igualdad de género y derechos LGBTIA en las empresas está fortalecida',
+        indicadores: [
           'Indicador 2.1: El pilotaje de 1 instrumento de implementación ampliado por el fomento de la igualdad de género y los derechos LGBTIQA+ en 4 empresas (2 de ellas privadas y V.R.G. 2 públicas) concluyó exitosamente en 1 empresa pública y 1 empresa privada.',
           'Indicador 2.2: 5 buenas prácticas para la aplicación de estándares de igualdad de género y derechos LGBTIQA+ son compartidas entre empresas públicas y privadas a través de una plataforma conjunta interactiva.'
         ]
       },
       C3: {
-        'Objetivo del Componente 3': [
+        objetivo: 'Las competencias de actores de medios de comunicación de las instituciones públicas para la elaboración de productos mediáticos y comunicacionales para el fomento de la igualdad de género y los derechos LGBTIA están fortalecidas',
+        indicadores: [
           'Indicador 3.1: 38 productos mediáticos para sensibilizar al público a nivel local, departamental y nacional en general para la igualdad de género y los derechos LGBTIA han sido elaborados por actores de medios de comunicación.',
           'Indicador 3.2: 3 productos comunicacionales para la orientación de servidores/as de instituciones públicas en la aplicación de leyes vigentes en materia de igualdad de género y derechos LGBTIA han sido elaborados por instituciones públicas relevantes.'
         ]
+      },
+      C4: {
+        objetivo: 'El equipo ProIgualdad realiza la gestión y el seguimiento a las actividades del proyecto de manera eficiente y efectiva, en forma participativa con las entidades socias e informa a GIZ, BMZ',
+        indicadores: []
       }
     };
 
@@ -206,25 +203,17 @@
       }catch(err){ console.warn('Tooltips no inicializados:', err); }
     }
 
-    function cargarObjetivos(comp){
-      const sel = $$('#objetivo');
-      const objetivos = Object.keys(CATALOGO[comp] || {});
-      sel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
-      objetivos.forEach(o => sel.insertAdjacentHTML('beforeend', `<option>${o}</option>`));
-      sel.disabled = objetivos.length === 0;
-
-      // limpiar indicadores
+    function actualizarCamposComponente(comp){
+      const data = CATALOGO[comp] || {};
+      const objetivoField = $$('#objetivo');
       const indSel = $$('#indicador');
-      indSel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
-      indSel.disabled = true;
-    }
 
-    function cargarIndicadores(comp, obj){
-      const indSel = $$('#indicador');
-      const inds = (CATALOGO[comp] && CATALOGO[comp][obj]) ? CATALOGO[comp][obj] : [];
+      objetivoField.value = data.objetivo || '';
+
       indSel.innerHTML = '<option value="" disabled selected>Seleccione…</option>';
-      inds.forEach(i => indSel.insertAdjacentHTML('beforeend', `<option>${i}</option>`));
-      indSel.disabled = inds.length === 0;
+      const indicadores = Array.isArray(data.indicadores) ? data.indicadores : [];
+      indicadores.forEach(i => indSel.insertAdjacentHTML('beforeend', `<option>${i}</option>`));
+      indSel.disabled = indicadores.length === 0;
     }
 
     async function enviar(e){
@@ -248,7 +237,7 @@
       const data = {
         Anio_Gestion: $$('#anio').value,
         Mes: $$('#mes').value,
-        Componente: $$('#componente').value,   // C1/C2/C3
+        Componente: $$('#componente').value,   // C1/C2/C3/C4
         Objetivo: $$('#objetivo').value,
         Indicador: $$('#indicador').value,
         Descripcion: desc,
@@ -274,7 +263,8 @@
 
         showAlert('success', '✅ ¡Reporte enviado! Muchas gracias.');
         form.reset();
-        $$('#objetivo').disabled = true; $$('#indicador').disabled = true;
+        actualizarCamposComponente('');
+        $$('#indicador').disabled = true;
         const cnt = $$('#descCounter'); cnt.textContent = `0 / ${MAX_WORDS} palabras`; cnt.classList.remove('over');
         form.classList.remove('was-validated');
       }catch(err){
@@ -296,8 +286,16 @@
         cnt.classList.toggle('over', wc>MAX_WORDS);
       });
 
-      $$('#componente').addEventListener('change', e => cargarObjetivos(e.target.value));
-      $$('#objetivo').addEventListener('change', e => cargarIndicadores($$('#componente').value, e.target.value));
+      const componenteSel = $$('#componente');
+      componenteSel.addEventListener('change', e => actualizarCamposComponente(e.target.value));
+
+      $$('#reporteForm').addEventListener('reset', () => {
+        setTimeout(() => {
+          actualizarCamposComponente('');
+          componenteSel.value = '';
+          $$('#indicador').disabled = true;
+        });
+      });
       $$('#reporteForm').addEventListener('submit', enviar);
     }
 
