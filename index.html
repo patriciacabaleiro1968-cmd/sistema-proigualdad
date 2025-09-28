@@ -192,10 +192,8 @@
 
   <!-- Lógica del Dashboard -->
   <script>
-    // DPI para gráficos nítidos
     if (window.Chart && Chart.defaults) Chart.defaults.devicePixelRatio = 2;
 
-    // ===== Config =====
     const API_BASE = '/api/data';
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const PALETTE = ['#4a3c8d','#e5438a','#41c4b3','#6c757d','#28a745','#17a2b8','#fd7e14','#20c997'];
@@ -203,7 +201,6 @@
     let chartDonut, chartBarIndicators, chartStackedMonths;
     let lastJson = null;
 
-    // ===== Helpers =====
     function showLoading(show){ document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
     function wrapWords(text, max=48){
       if (!text) return [''];
@@ -228,12 +225,10 @@
       return { anio: y!=='todos' ? Number(y) : null, componente: c || null };
     }
 
-    // ===== Init =====
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentDate').textContent =
         new Date().toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
 
-      // navegación
       document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', e => {
           e.preventDefault();
@@ -244,49 +239,39 @@
         });
       });
 
-      // filtros
       document.getElementById('btnAplicar').addEventListener('click', cargarDesdeAPI);
       document.getElementById('btnRefrescar').addEventListener('click', cargarDesdeAPI);
 
-      // export
       document.getElementById('btnPdf').addEventListener('click', e => { e.preventDefault(); exportarPDF(); });
       document.getElementById('btnExcel').addEventListener('click', e => { e.preventDefault(); exportarExcel(); });
 
-      // primera carga
       cargarDesdeAPI();
     });
 
-    // ===== Carga y agregados =====
     async function cargarDesdeAPI(){
       showLoading(true);
       try{
         const { anio, componente } = filtrosActuales();
 
-        // Datos crudos (con filtros actuales)
         const uRaw = new URL(API_BASE, location.origin);
         if (anio) uRaw.searchParams.set('anio', anio);
         if (componente) uRaw.searchParams.set('componente', componente);
-        const rows = await fetchJSON(uRaw.toString()); // arreglo de filas
+        const rows = await fetchJSON(uRaw.toString());
 
-        // Agregados en frontend
         const byComponenteMap = {};
         const byAnioCompMap = new Map();
         const byIndicadorMap = new Map();
         const byMesMap = new Map();
 
         for (const r of rows) {
-          // por componente
           byComponenteMap[r.componente] = (byComponenteMap[r.componente] || 0) + 1;
 
-          // por año/componente
           const kAC = `${r.anio_gestion}||${r.componente}`;
           byAnioCompMap.set(kAC, (byAnioCompMap.get(kAC) || 0) + 1);
 
-          // por indicador
           const kInd = `${r.componente}||${r.indicador || 'Sin indicador'}`;
           byIndicadorMap.set(kInd, (byIndicadorMap.get(kInd) || 0) + 1);
 
-          // por mes/componente (mes puede ser '01'..'12' o nombre)
           const mesKey = /^\d{2}$/.test(String(r.mes)) ? String(r.mes) : String(r.mes);
           const kMes = `${mesKey}||${r.componente}`;
           byMesMap.set(kMes, (byMesMap.get(kMes) || 0) + 1);
@@ -303,14 +288,13 @@
 
         const byMes = Array.from(byMesMap.entries()).map(([k,total])=>{
           const [m, comp] = k.split('||');
-          const nombreMes = /^\d{2}$/.test(m) ? MONTHS[Number(m)-1] : m; // si viene 01..12 → nombre
+          const nombreMes = /^\d{2}$/.test(m) ? MONTHS[Number(m)-1] : m;
           return { mes: nombreMes, componente: comp, total };
         });
 
         lastJson = { ok:true, filters:{ anio: anio ?? 'Todos', componente: componente || 'Todos' }, data: rows,
           aggregates: { byComponente, byAnioComponente, byIndicador, byMes } };
 
-        // UI
         document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
         document.getElementById('filtrosChip').textContent =
           `Año: ${lastJson.filters.anio} · Componente: ${lastJson.filters.componente}`;
@@ -329,7 +313,6 @@
       }
     }
 
-    // ===== Renders =====
     function renderKPIs(byC){
       const row = document.getElementById('kpisRow'); row.innerHTML='';
       if(!byC || !byC.length){
@@ -456,24 +439,47 @@
         doc.addImage(img.dataUrl,'PNG',margin,y,w,h); y+=h+16;
       }
 
+      // ---- Tabla 1: Consolidado (anchos definidos para que no “se pase”)
       const headCons=[['Año','Componente','Total']];
-      const bodyCons=(lastJson.aggregates.byAnioComponente||[]).map(r=>[r.anio_gestion,r.componente,r.total]);
+      const bodyCons=(lastJson.aggregates.byAnioComponente||[]).map(r=>[r.anio_gestion, r.componente, r.total]);
       if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
       doc.setFontSize(12); doc.text('Consolidado por Año y Componente', margin, y); y+=6;
-      doc.autoTable({ startY:y+10, head:headCons, body:bodyCons, styles:{ fontSize:10, cellPadding:3 }, margin:{ left:margin, right:margin } });
+
+      doc.autoTable({
+        startY: y + 10,
+        head: headCons,
+        body: bodyCons,
+        styles:{ fontSize:9, cellPadding:3, overflow:'linebreak' },
+        margin:{ left: margin, right: margin },
+        tableWidth: maxW,
+        columnStyles: {
+          0: { cellWidth: 70 },     // Año
+          1: { cellWidth: 140 },    // Componente
+          2: { cellWidth: 60, halign: 'right' } // Total
+        }
+      });
       y = doc.lastAutoTable.finalY + 20;
 
+      // ---- Tabla 2: Top Indicadores (ya controlada)
       const top=(lastJson.aggregates.byIndicador||[]).sort((a,b)=>b.total-a.total).slice(0,10);
       const headInd=[['Componente','Indicador','Total']];
-      const bodyInd=top.map(r=>[r.componente,String(r.indicador),r.total]);
+      const bodyInd=top.map(r=>[r.componente, String(r.indicador), r.total]);
       if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
       doc.text('Top 10 Indicadores', margin, y);
-      const colIndicWidth=Math.max(220, maxW-160);
+
+      const colIndicWidth=Math.max(220, maxW - 160);
       doc.autoTable({
-        startY:y+10, head:headInd, body:bodyInd,
+        startY: y + 10,
+        head: headInd,
+        body: bodyInd,
         styles:{ fontSize:9, cellPadding:3, overflow:'linebreak' },
-        margin:{ left:margin, right:margin },
-        columnStyles:{ 0:{ cellWidth:90 }, 1:{ cellWidth:colIndicWidth }, 2:{ cellWidth:60, halign:'right' } }
+        margin:{ left: margin, right: margin },
+        tableWidth: maxW,
+        columnStyles: {
+          0: { cellWidth: 90 },
+          1: { cellWidth: colIndicWidth }, // Indicador ancho y con wrap
+          2: { cellWidth: 60, halign: 'right' }
+        }
       });
 
       doc.save('proigualdad-dashboard.pdf');
