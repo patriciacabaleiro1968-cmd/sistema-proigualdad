@@ -84,6 +84,12 @@
             <input id="tarea_especifica" />
           </div>
 
+          <!-- NUEVO: Descripción obligatoria -->
+          <div class="col-12">
+            <label for="descripcion">Descripción <span class="help">(requerido)</span></label>
+            <textarea id="descripcion" rows="3" required placeholder="Describe la actividad, producto, alcance…"></textarea>
+          </div>
+
           <div class="col-4">
             <label for="responsable">Responsable</label>
             <input id="responsable" />
@@ -126,9 +132,8 @@
     </div>
   </div>
 
-  <!-- Todo el JS está en este bloque; no hay llamadas externas ni fetch al cargar -->
   <script>
-  // ===== Catálogo local de objetivos e indicadores por componente =====
+  // ===== Catálogo por componente =====
   const OBJETIVOS = {
     'C1': 'Objetivo del Componente 1 (editar según institucional).',
     'C2': 'Objetivo del Componente 2 (editar según institucional).',
@@ -142,20 +147,14 @@
     'C4': [ 'Indicador 4.1 (nuevo)', 'Indicador 4.2 (nuevo)' ]
   };
 
-  // ===== Utilidades de normalización =====
+  // ===== Utilidades =====
   function monthToMM(mesTxt) {
-    const mapa = {
-      'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06',
-      'julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'
-    };
+    const mapa = { 'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','setiembre':'09','octubre':'10','noviembre':'11','diciembre':'12' };
     if (!mesTxt) return '';
     return (mapa[String(mesTxt).trim().toLowerCase()] || '').padStart(2,'0');
   }
   function pascalToSnake(key) {
-    return key
-      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-      .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
-      .toLowerCase();
+    return key.replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/([A-Z])([A-Z][a-z])/g,'$1_$2').toLowerCase();
   }
   function compLabelToCode(lbl){
     const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i);
@@ -165,10 +164,7 @@
     const out = {};
     Object.keys(raw).forEach(k => { out[ pascalToSnake(k) ] = raw[k]; });
 
-    // Mes → "01".."12"
     if (raw.Mes || out.mes) out.mes = monthToMM(raw.Mes || out.mes);
-
-    // Componente → "C1".."C4"
     if (raw.Componente || out.componente) {
       const v = String(raw.Componente || out.componente).trim().toUpperCase();
       const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
@@ -177,7 +173,7 @@
     return out;
   }
 
-  // ===== Elementos de UI =====
+  // ===== UI =====
   const formEl = document.getElementById('formEl');
   const statusEl = document.getElementById('status');
   const selComp = document.getElementById('componente');
@@ -189,9 +185,8 @@
     txtObjetivo.value = OBJETIVOS[code] || '';
     selIndicador.innerHTML = '<option value="">Seleccione…</option>' + (INDICADORES[code]||[]).map(i=>`<option>${i}</option>`).join('');
   }
-
-  // Inicializaciones ligeras (NO hay fetch aquí)
   selComp.addEventListener('change', recargarObjetivoEIndicadores);
+
   document.getElementById('btnReset').addEventListener('click', () => {
     formEl.reset();
     recargarObjetivoEIndicadores();
@@ -214,6 +209,7 @@
       ActividadPrincipal: document.querySelector('#actividad_principal').value,
       Subactividad: document.querySelector('#subactividad').value,
       TareaEspecifica: document.querySelector('#tarea_especifica').value,
+      Descripcion: document.querySelector('#descripcion').value,   // <<<<<<<<<< esencial
       Responsable: document.querySelector('#responsable').value,
       Meta: document.querySelector('#meta').value,
       Avance: document.querySelector('#avance').value,
@@ -221,6 +217,13 @@
       Estado: document.querySelector('#estado').value,
       EvidenciaUrl: document.querySelector('#evidencia_url').value
     };
+
+    // Validación rápida de front para descripcion
+    if (!raw.Descripcion || !raw.Descripcion.trim()) {
+      statusEl.textContent = '❌ La descripción es obligatoria.';
+      statusEl.className = 'help err';
+      return;
+    }
 
     const payload = normalizePayload(raw);
     if (!payload.evidencia_url) delete payload.evidencia_url;
@@ -231,13 +234,9 @@
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
-
-      // Lee como texto para evitar fallos si backend devuelve HTML por error
       const txt = await res.text();
-
       if (!res.ok) throw new Error(txt || 'Error desconocido');
 
-      // Éxito
       formEl.reset();
       recargarObjetivoEIndicadores();
       statusEl.textContent = '✅ Registro enviado correctamente.';
@@ -248,7 +247,6 @@
     }
   });
 
-  // Deja preparado el objetivo/indicadores si ya hay un valor seleccionado
   recargarObjetivoEIndicadores();
   </script>
 </body>
