@@ -201,6 +201,7 @@
     let chartDonut, chartBarIndicators, chartStackedMonths;
     let lastJson = null;
 
+    // Helpers
     function showLoading(show){ document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
     function wrapWords(text, max=48){
       if (!text) return [''];
@@ -211,6 +212,11 @@
       }
       if(line) lines.push(line);
       return lines;
+    }
+    // Inserta separadores invisibles para permitir salto de línea en palabras larguísimas (URLs, códigos)
+    function breakLongWords(str, every=18){
+      const s = String(str ?? '');
+      return s.replace(new RegExp(`(\\S{${every}})`, 'g'), '$1\u200B'); // \u200B = zero-width space
     }
     async function fetchJSON(url){
       const resp = await fetch(url, { headers:{ 'Accept':'application/json' }, cache:'no-store' });
@@ -397,7 +403,7 @@
       rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.anio_gestion}</td><td>${r.componente}</td><td>${r.total}</td>`; tb.appendChild(tr); });
     }
 
-    // ===== Exportar =====
+    // Exportar
     async function grabChartImage(canvasId, sectionId){
       const current=document.querySelector('.dashboard-section.active');
       const section=document.getElementById(sectionId);
@@ -439,9 +445,13 @@
         doc.addImage(img.dataUrl,'PNG',margin,y,w,h); y+=h+16;
       }
 
-      // ---- Tabla 1: Consolidado (anchos definidos para que no “se pase”)
+      // ---- Tabla 1: Consolidado
       const headCons=[['Año','Componente','Total']];
-      const bodyCons=(lastJson.aggregates.byAnioComponente||[]).map(r=>[r.anio_gestion, r.componente, r.total]);
+      const bodyCons=(lastJson.aggregates.byAnioComponente||[]).map(r=>[
+        r.anio_gestion,
+        breakLongWords(r.componente, 12),
+        r.total
+      ]);
       if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
       doc.setFontSize(12); doc.text('Consolidado por Año y Componente', margin, y); y+=6;
 
@@ -454,20 +464,23 @@
         tableWidth: maxW,
         columnStyles: {
           0: { cellWidth: 70 },     // Año
-          1: { cellWidth: 140 },    // Componente
+          1: { cellWidth: 365 },    // Componente (gran ancho, con word-break)
           2: { cellWidth: 60, halign: 'right' } // Total
         }
       });
       y = doc.lastAutoTable.finalY + 20;
 
-      // ---- Tabla 2: Top Indicadores (ya controlada)
+      // ---- Tabla 2: Top Indicadores
       const top=(lastJson.aggregates.byIndicador||[]).sort((a,b)=>b.total-a.total).slice(0,10);
       const headInd=[['Componente','Indicador','Total']];
-      const bodyInd=top.map(r=>[r.componente, String(r.indicador), r.total]);
+      const bodyInd=top.map(r=>[
+        r.componente,
+        breakLongWords(String(r.indicador), 18),
+        r.total
+      ]);
       if(y > pageH - margin - 40){ doc.addPage(); y=margin; }
       doc.text('Top 10 Indicadores', margin, y);
 
-      const colIndicWidth=Math.max(220, maxW - 160);
       doc.autoTable({
         startY: y + 10,
         head: headInd,
@@ -477,7 +490,7 @@
         tableWidth: maxW,
         columnStyles: {
           0: { cellWidth: 90 },
-          1: { cellWidth: colIndicWidth }, // Indicador ancho y con wrap
+          1: { cellWidth: 365 },   // Indicador amplio y con cortes invisibles
           2: { cellWidth: 60, halign: 'right' }
         }
       });
