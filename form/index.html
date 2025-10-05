@@ -50,6 +50,7 @@
     .b-yellow{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
     .b-green{background:#DCFCE7;color:#065F46;border-color:#BBF7D0}
     .b-gray{background:#F3F4F6;color:#111827;border-color:#E5E7EB}
+    .b-blue{background:#DBEAFE;color:#1E3A8A;border-color:#BFDBFE} /* Reprogramado */
   </style>
 </head>
 <body>
@@ -124,7 +125,7 @@
             <textarea id="descripcion" rows="3" required placeholder="Describe la actividad, producto, alcance…"></textarea>
           </div>
 
-          <!-- Nueva distribución: Responsable + % Cumplimiento + Estado -->
+          <!-- Responsable + % + Estado -->
           <div class="col-4 form-group">
             <label for="responsable">Responsable</label>
             <input id="responsable" />
@@ -135,18 +136,19 @@
           </div>
           <div class="col-4 form-group">
             <label for="estado">Estado</label>
-            <!-- Catálogo actualizado -->
+            <!-- Catálogo actualizado con "Reprogramado" -->
             <select id="estado" required>
               <option value="">Seleccione…</option>
               <option value="Atrasada, Interrumpida o En riesgo">Atrasada, Interrumpida o En riesgo</option>
               <option value="En proceso">En proceso</option>
               <option value="Cumplida exitosamente">Cumplida exitosamente</option>
               <option value="No puede iniciar o concluir satisfactoriamente">No puede iniciar o concluir satisfactoriamente</option>
+              <option value="Reprogramado">Reprogramado</option>
             </select>
             <div id="estadoPreview" class="help" style="margin-top:6px"></div>
           </div>
 
-          <!-- Evidencia a ancho completo para mejor uso -->
+          <!-- Evidencia -->
           <div class="col-12 form-group">
             <label for="evidencia_url">Evidencia (URL)</label>
             <input id="evidencia_url" type="url" placeholder="https://…" />
@@ -217,6 +219,7 @@
     "En proceso",
     "Cumplida exitosamente",
     "No puede iniciar o concluir satisfactoriamente",
+    "Reprogramado",
   ];
 
   const MAPEO_ANTIGUOS_A_NUEVOS = {
@@ -232,16 +235,16 @@
     if (Object.prototype.hasOwnProperty.call(MAPEO_ANTIGUOS_A_NUEVOS, key)) {
       return MAPEO_ANTIGUOS_A_NUEVOS[key];
     }
-    // Si ya es uno de los nuevos, lo dejamos igual
     return ESTADOS_PERMITIDOS.includes(v) ? v : v;
   }
 
-  // Mapa de clases para pintar celdas/badges (rojo/amarillo/verde/gris)
+  // Mapa de clases para pintar celdas/badges
   const ESTADO_A_CLASE = {
     "Atrasada, Interrumpida o En riesgo": "b-red",
     "En proceso": "b-yellow",
     "Cumplida exitosamente": "b-green",
     "No puede iniciar o concluir satisfactoriamente": "b-gray",
+    "Reprogramado": "b-blue",
   };
 
   function renderBadgeEstado(estado) {
@@ -293,8 +296,8 @@
     selectEl.appendChild(opt0);
     (items || []).forEach(texto => {
       const opt = document.createElement('option');
-      opt.value = texto;           // enviamos el texto completo
-      opt.textContent = texto;     // mostramos el texto completo
+      opt.value = texto;
+      opt.textContent = texto;
       selectEl.appendChild(opt);
     });
   }
@@ -336,19 +339,18 @@
     const raw = {
       AnioGestion: anioEl.value,
       Mes: document.querySelector('#mes').value,
-      Componente: selComp.value,
-      Objetivo: txtObjetivo.value,
-      Indicador: selIndicador.value, // texto completo
-      Meta: document.querySelector('#meta').value, // meta del indicador (mismo campo 'meta' en BD)
+      Componente: document.querySelector('#componente').value,
+      Objetivo: document.getElementById('objetivo').value,
+      Indicador: document.getElementById('indicador').value, // texto completo
+      Meta: document.querySelector('#meta').value,
       ActividadPrincipal: document.querySelector('#actividad_principal').value,
       Subactividad: document.querySelector('#subactividad').value,
       TareaEspecifica: document.querySelector('#tarea_especifica').value,
       Descripcion: document.querySelector('#descripcion').value,   // requerido
       Responsable: document.querySelector('#responsable').value,
       PorcentajeCumplimiento: document.querySelector('#porcentaje_cumplimiento').value,
-      Estado: document.querySelector('#estado').value,
+      Estado: selEstado.value,
       EvidenciaUrl: document.querySelector('#evidencia_url').value
-      // Avance eliminado
     };
 
     if (!raw.Descripcion || !raw.Descripcion.trim()) {
@@ -390,7 +392,7 @@
     }
   });
 
-  // Inicialización: año por defecto, catálogos y preview de estado
+  // Inicialización
   (function init(){
     const hoy = new Date();
     anioEl.value = hoy.getFullYear();
