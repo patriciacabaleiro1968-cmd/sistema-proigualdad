@@ -43,6 +43,13 @@
     .status { margin-top:10px; font-size:.9rem; }
     .ok  { color:#065f46; }
     .err { color:#b91c1c; }
+
+    /* Badges de estado (para celdas/preview) */
+    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid;font-weight:600;font-size:.8rem;white-space:nowrap}
+    .b-red{background:#FEE2E2;color:#991B1B;border-color:#FECACA}
+    .b-yellow{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+    .b-green{background:#DCFCE7;color:#065F46;border-color:#BBF7D0}
+    .b-gray{background:#F3F4F6;color:#111827;border-color:#E5E7EB}
   </style>
 </head>
 <body>
@@ -128,12 +135,15 @@
           </div>
           <div class="col-4 form-group">
             <label for="estado">Estado</label>
-            <select id="estado">
-              <option value="Planificado">Planificado</option>
-              <option value="En ejecución">En ejecución</option>
-              <option value="Completado">Completado</option>
-              <option value="Retrasado">Retrasado</option>
+            <!-- Catálogo actualizado -->
+            <select id="estado" required>
+              <option value="">Seleccione…</option>
+              <option value="Atrasada, Interrumpida o En riesgo">Atrasada, Interrumpida o En riesgo</option>
+              <option value="En proceso">En proceso</option>
+              <option value="Cumplida exitosamente">Cumplida exitosamente</option>
+              <option value="No puede iniciar o concluir satisfactoriamente">No puede iniciar o concluir satisfactoriamente</option>
             </select>
+            <div id="estadoPreview" class="help" style="margin-top:6px"></div>
           </div>
 
           <!-- Evidencia a ancho completo para mejor uso -->
@@ -200,6 +210,49 @@
     const m = String(lbl||'').match(/COMPONENTE\s*([1-4])/i);
     return m ? `C${m[1]}` : String(lbl||'').toUpperCase();
   }
+
+  // ===== Normalización de ESTADO (antiguos → nuevos) =====
+  const ESTADOS_PERMITIDOS = [
+    "Atrasada, Interrumpida o En riesgo",
+    "En proceso",
+    "Cumplida exitosamente",
+    "No puede iniciar o concluir satisfactoriamente",
+  ];
+
+  const MAPEO_ANTIGUOS_A_NUEVOS = {
+    "planificado": "No puede iniciar o concluir satisfactoriamente",
+    "en ejecución": "En proceso",
+    "completado": "Cumplida exitosamente",
+    "retrasado": "Atrasada, Interrumpida o En riesgo",
+  };
+
+  function normalizarEstado(v) {
+    if (!v) return v;
+    const key = String(v).trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(MAPEO_ANTIGUOS_A_NUEVOS, key)) {
+      return MAPEO_ANTIGUOS_A_NUEVOS[key];
+    }
+    // Si ya es uno de los nuevos, lo dejamos igual
+    return ESTADOS_PERMITIDOS.includes(v) ? v : v;
+  }
+
+  // Mapa de clases para pintar celdas/badges (rojo/amarillo/verde/gris)
+  const ESTADO_A_CLASE = {
+    "Atrasada, Interrumpida o En riesgo": "b-red",
+    "En proceso": "b-yellow",
+    "Cumplida exitosamente": "b-green",
+    "No puede iniciar o concluir satisfactoriamente": "b-gray",
+  };
+
+  function renderBadgeEstado(estado) {
+    const clase = ESTADO_A_CLASE[estado] || "b-gray";
+    return `<span class="badge ${clase}">${estado}</span>`;
+  }
+
+  function validateEstado(v) {
+    return ESTADOS_PERMITIDOS.includes(v);
+  }
+
   function normalizePayload(raw) {
     const out = {};
     Object.keys(raw).forEach(k => out[pascalToSnake(k)] = raw[k]);
@@ -213,6 +266,12 @@
       const m = v.match(/COMPONENTE\s*([1-4])/i) || v.match(/^C([1-4])$/);
       out.componente = m ? `C${m[1]}` : v;
     }
+
+    // Estado → normalizado (por si llega un valor antiguo)
+    const estadoRaw = raw.Estado || out.estado;
+    const estadoNorm = normalizarEstado(estadoRaw);
+    out.estado = estadoNorm;
+
     return out;
   }
 
@@ -223,6 +282,8 @@
   const txtObjetivo = document.getElementById('objetivo');
   const selIndicador = document.getElementById('indicador');
   const anioEl = document.getElementById('anio_gestion');
+  const selEstado = document.getElementById('estado');
+  const estadoPreview = document.getElementById('estadoPreview');
 
   // Poblado seguro de opciones (evita innerHTML)
   function setOptions(selectEl, items) {
@@ -246,10 +307,22 @@
   }
   selComp.addEventListener('change', recargarObjetivoEIndicadores);
 
+  // Vista previa del color del estado
+  function actualizarPreviewEstado() {
+    const v = selEstado.value;
+    if (!v) {
+      estadoPreview.innerHTML = '';
+      return;
+    }
+    estadoPreview.innerHTML = renderBadgeEstado(v);
+  }
+  selEstado.addEventListener('change', actualizarPreviewEstado);
+
   // Reset limpio
   document.getElementById('btnReset').addEventListener('click', () => {
     formEl.reset();
     recargarObjetivoEIndicadores();
+    estadoPreview.innerHTML = '';
     statusEl.textContent = '';
     statusEl.className = 'status';
   });
@@ -288,6 +361,11 @@
       statusEl.className = 'status err';
       return;
     }
+    if (!validateEstado(raw.Estado)) {
+      statusEl.textContent = '❌ Selecciona un estado válido del catálogo vigente.';
+      statusEl.className = 'status err';
+      return;
+    }
 
     const payload = normalizePayload(raw);
     if (!payload.evidencia_url) delete payload.evidencia_url;
@@ -303,6 +381,7 @@
 
       formEl.reset();
       recargarObjetivoEIndicadores();
+      estadoPreview.innerHTML = '';
       statusEl.textContent = '✅ Registro enviado correctamente.';
       statusEl.className = 'status ok';
     } catch (err) {
@@ -311,11 +390,12 @@
     }
   });
 
-  // Inicialización: año por defecto y catálogos
+  // Inicialización: año por defecto, catálogos y preview de estado
   (function init(){
     const hoy = new Date();
     anioEl.value = hoy.getFullYear();
     recargarObjetivoEIndicadores();
+    actualizarPreviewEstado();
   })();
   </script>
 </body>
